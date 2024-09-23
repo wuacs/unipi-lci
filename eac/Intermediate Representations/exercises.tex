@@ -60,10 +60,9 @@ contain an even number of 0's or an odd one}
 
 \begin{align*}
 S \rightarrow& D00\\
-D \rightarrow& 1\\      
-  &| D0\\
-  &| D1\\
-  &| \epsilon
+D \rightarrow& D0\\
+  |& D1\\
+  |& \epsilon
 \end{align*}              
 
 \begin{subquestion}{Design an attribute grammar to compute the information we are
@@ -90,7 +89,16 @@ D\rightarrow \epsilon:&\quad n(D) = 0
 
 \begin{subquestion}{Construct the evaluation for the string 110100} 
 
-\Tree [.S [.D [.D [.D [.D [ $\epsilon$ ] 1 ] 1 ] 0 ] 1 ] 0 0 ]
+\Tree [.S [.$D_0$ [.$D_1$ [.$D_2$ [.$D_3$ [ [.$D_4$ $\epsilon$ ] ] 1 ] 1 ] 0 ] 1 ] 0 0 ]
+
+\begin{align*}
+n(D_4) &= 0\\
+n(D_3) &= 1 + 0 = 1\\
+n(D_2) &= 1 + 1 = 2\\
+n(D_1) &= 2 + 0 = 2\\
+n(D_0) &= 2 + 1 = 3\\
+even(S) &= ((3 \% 2)==0) = False 
+\end{align*}  
 
 \end{subquestion}
 
