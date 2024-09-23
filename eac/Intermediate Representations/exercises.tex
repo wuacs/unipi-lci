@@ -1,0 +1,99 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Cleese Assignment (For Students)
+% LaTeX Template
+% Version 2.0 (27/5/2018)
+%
+% This template originates from:
+% http://www.LaTeXTemplates.com
+%
+% Author:
+% Vel (vel@LaTeXTemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[11pt]{article}
+
+\input{structure.tex} % Include the file specifying the document structure and custom commands
+
+%----------------------------------------------------------------------------------------
+%	ASSIGNMENT INFORMATION
+%----------------------------------------------------------------------------------------
+
+% Required
+\newcommand{\assignmentQuestionName}{Question} % The word to be used as a prefix to question numbers; example alternatives: Problem, Exercise
+\newcommand{\assignmentClass}{Languages, Compilers and Intepreters} % Course/class
+\newcommand{\assignmentTitle}{Context Sensitive Analysis} % Assignment title or name
+\newcommand{\assignmentAuthorName}{Dario Bekic} % Student name
+
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\maketitle % Print the title page
+
+\thispagestyle{empty} % Suppress headers and footers on the title page
+
+\newpage
+
+%----------------------------------------------------------------------------------------
+%	QUESTION 1
+%----------------------------------------------------------------------------------------
+
+\begin{question}
+
+\questiontext{Write a grammar that generates all binary numbers multiple of 4. \\Assume we are interested in knowing whether the representation
+contain an even number of 0's or an odd one}
+
+\answer{It is provable that any multiple of 4 is a binary number with first and second least significant digit set to 0.}
+
+\begin{align*}
+S \rightarrow& D00\\
+D \rightarrow& 1\\      
+  &| D0\\
+  &| D1\\
+  &| \epsilon
+\end{align*}              
+
+\begin{subquestion}{Design an attribute grammar to compute the information we are
+interested in}
+
+\begin{align*}
+S\rightarrow D00:&\quad even(S) = (n(D)\%2 == 0)\\
+D_1\rightarrow D_20:&\quad n(D_1) = 1 + n(D_2)\\
+D_1\rightarrow D_21:&\quad n(D_1) = n(D_2)\\
+D\rightarrow \epsilon:&\quad n(D) = 0
+\end{align*}  
+
+\end{subquestion}
+
+\begin{subquestion}{Design a ad-hoc directed translation solving the same problem} 
+
+\begin{lstlisting}[mathescape]
+    S $\rightarrow$     D00    $\dollar \dollar$ = is_odd($\dollar$1)
+    D $\rightarrow$     D1     $\dollar \dollar$ = $\dollar$1
+      |    D0     $\dollar \dollar$ =  sum(1, $\dollar$1)
+      |    $\epsilon$       $\dollar \dollar$ = 0
+\end{lstlisting}
+\end{subquestion}
+
+\begin{subquestion}{Construct the evaluation for the string 110100} 
+
+\Tree [.S [.D [.D [.D [.D [ $\epsilon$ ] 1 ] 1 ] 0 ] 1 ] 0 0 ]
+
+\end{subquestion}
+
+\end{question}
+
+\end{document}
