@@ -1,6 +1,4 @@
 (library
  (name miniFun)
  (libraries base stdio)
- (inline_tests)
- (modules miniFun)
- (preprocess (pps ppx_inline_test)))
+ (modules miniFun))
