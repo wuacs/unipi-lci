@@ -1,0 +1,3 @@
+(test
+ (name MiniTyFun)
+ (libraries ounit2 MiniTyFun))

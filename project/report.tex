@@ -1,0 +1,66 @@
+\documentclass[a4paper,11pt]{report}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{theorem}
+\usepackage{textcomp}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{parskip}
+
+
+\usepackage{semantic}
+
+\title{report lci}
+\author{Dario Bekic}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\begin{abstract}
+\end{abstract}
+
+\chapter{MiniTyFun}
+
+$\verb|LET FUN|$
+\\
+\[
+\inference[]
+{ 
+\Gamma[f \mapsto \tau \texttt{ -> } \tau'] \vdash t' \triangleright \tau''\quad
+\Gamma \vdash t \triangleright \tau'
+}
+{
+\begin{array}{c}
+\Gamma \vdash  \text{ letfun } f x:\tau = t \text{ in } t' \triangleright \tau''
+\end{array}
+}
+\]
+
+$\verb|FUN|$
+\\
+\[
+\inference[]
+{ 
+\Gamma \vdash t \triangleright \tau'
+}
+{
+\begin{array}{c}
+\Gamma \vdash  \text{ fun } x:\tau \texttt{ => } t \triangleright (\tau \rightarrow \tau')
+\end{array}
+}
+\]
+
+\end{document}
