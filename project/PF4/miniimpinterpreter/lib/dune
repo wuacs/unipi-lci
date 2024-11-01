@@ -1,0 +1,7 @@
+(library
+ (name miniimpinterpreter)
+ (modules miniimpinterpreter Miniimparser MiniImp))
+
+(menhir
+ (modules Miniimparser)
+ (explain true))
