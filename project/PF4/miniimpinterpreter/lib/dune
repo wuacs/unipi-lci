@@ -1,6 +1,9 @@
+(ocamllex Miniimplexer)
+
 (library
  (name miniimpinterpreter)
- (modules miniimpinterpreter Miniimparser MiniImp))
+ (public_name miniimpinterpreter)
+ (modules Miniimplexer Miniimparser MiniImp miniimpinterpreter ))
 
 (menhir
  (modules Miniimparser)
