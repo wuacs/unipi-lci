@@ -67,12 +67,10 @@ let test_eval2 _ =
 (*
 Type checking: 
 (let function rec_fun x: Integer = 
-  let x = (rec_function 5) + 3 in
+  let x = (rec_function 5) AND false in
   let y = (rec_function 3) AND true in
   x) in (rec_function 5)
   
-  Should fail because you use rec_function as a Integer->Integer and
-  Integer->Boolean at the same time
 *)
 
 let test_eval3 _ =
@@ -93,6 +91,7 @@ let test_eval3 _ =
   | Some _ -> assert_equal true true
   | _ -> assert_failure "rec_fun is Integer->Boolean why not?"
 
+
 (* Test suite *)
 let suite =
   "MiniFun Test Suite"
@@ -100,7 +99,7 @@ let suite =
          "summing 5 and 4... " >:: test_eval0;
          "summing 5 and factorial(5).." >:: test_eval1;
          "using a type as an integer and boolean at same time..." >:: test_eval2;
-         "using a type a..." >:: test_eval3;
+         "using a type as a boolean only does not create problems" >:: test_eval3;
        ]
 
 (* Run the test suite *)

@@ -1,5 +1,5 @@
 open OUnit2
-open MiniFun (* Assuming MiniFun is your library module *)
+open MiniFun
 
 (*
 Testing program
