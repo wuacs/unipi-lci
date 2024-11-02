@@ -1,0 +1,10 @@
+(ocamllex miniimp_lexer)
+
+(library
+ (name miniimp_interpreter)
+ (public_name miniimp_interpreter)
+ (modules miniimp_lexer miniimp_parser miniimp_ast miniimp_interpreter))
+
+(menhir
+ (modules miniimp_parser)
+ (explain true))
