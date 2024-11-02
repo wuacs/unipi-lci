@@ -1,0 +1,10 @@
+(ocamllex minityfun_lexer)
+
+(library
+ (name minityfun_interpreter)
+ (modules minityfun_ast minityfun_parser minityfun_interpreter))
+
+(menhir
+ (modules minityfun_parser)
+ (explain true))
+

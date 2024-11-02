@@ -2,7 +2,7 @@ type var = string
 (** Type representing a variable, i.e. the domain of the {!value_env} type *)
 
 (** Type representing one of the allowed {b binary} operators. In future it might be wise to rename this. *)
-type op = Plus | Minus | And | Mul | Less | Equal
+type op = Plus | Minus | And | Mul | Less
 
 (** 
 Type representing the abstract syntax tree of the language. Notice how closure definitions {b Fun} and

@@ -1,0 +1,4 @@
+(executable
+ (public_name minityfun_interpreter)
+ (name main)
+ (libraries minityfun_interpreter))

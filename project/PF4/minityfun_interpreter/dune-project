@@ -1,0 +1,24 @@
+(lang dune 3.16)
+(using menhir 3.0)
+
+(name minityfun_interpreter)
+
+(generate_opam_files true)
+
+(source
+ (github wuacs/unipi-lci))
+
+(authors "Dario Bekic")
+
+(maintainers "Dario Bekic")
+
+(license LICENSE)
+
+(documentation https://lceragioli.github.io/pages/Slides/types.pdf)
+
+(package
+ (name minityfun_interpreter)
+ (synopsis "An interpreter for the minimal typed functional language")
+ (depends ocaml dune))
+
+; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
