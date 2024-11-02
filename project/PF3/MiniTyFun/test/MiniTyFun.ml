@@ -91,16 +91,15 @@ let test_eval3 _ =
   | Some _ -> assert_equal true true
   | _ -> assert_failure "rec_fun is Integer->Boolean why not?"
 
-
 (* Test suite *)
 let suite =
   "MiniFun Test Suite"
   >::: [
-         "summing 5 and 4... " >:: test_eval0;
-         "summing 5 and factorial(5).." >:: test_eval1;
-         "using a type as an integer and boolean at same time..." >:: test_eval2;
-         "using a type as a boolean only does not create problems" >:: test_eval3;
-       ]
+          "summing 5 and 4... " >:: test_eval0;
+          "summing 5 and factorial(5).." >:: test_eval1;
+          "using a type as an integer and boolean at same time..." >:: test_eval2;
+          "rec_fun is indeed a function Integer->Boolean" >:: test_eval3;       
+        ]
 
 (* Run the test suite *)
 let () = run_test_tt_main suite

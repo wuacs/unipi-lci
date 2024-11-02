@@ -23,7 +23,14 @@ type ast =
   | Var of var
 
 (** Type representing the type of a term. {b Not sure about naming conventions?} *)
-and tau = Not_Defined of var | Integer_t | Boolean_t | Closure_t of tau * tau
+and tau = Integer_t | 
+          Boolean_t |
+          Closure_t of tau * tau |
+          Variable_t of var * context
+
+and context = Domain 
+            | Codomain
+            | Value
 
 (** Storable first class values. Integers, Booleans, Recursive closures, Non-Recursive closures *)
 and value =
