@@ -2,7 +2,7 @@
 
 (library
  (name minityfun_interpreter)
- (modules minityfun_ast minityfun_parser  minityfun_lexer minityfun_interpreter))
+ (modules minityfun_ast minityfun_parser minityfun_lexer minityfun_interpreter))
 
 (menhir
  (modules minityfun_parser)
