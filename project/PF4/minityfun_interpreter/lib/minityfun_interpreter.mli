@@ -1,2 +1,2 @@
-(*val interpret: Lexing.lexbuf -> Minityfun.value*)  
+val interpret: Lexing.lexbuf -> Minityfun_ast.value
 

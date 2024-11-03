@@ -4,6 +4,9 @@ type var = string
 (** Type representing one of the allowed {b binary} operators. In future it might be wise to rename this. *)
 type op = Plus | Minus | And | Mul | Less
 
+(** The environment map, mapping {!var} to {!value} *)
+module Env_map : Map.S with type key = string
+
 (** 
 Type representing the abstract syntax tree of the language. Notice how closure definitions {b Fun} and
 {b LetFun} have typed(see {!tau}) parameters.
@@ -39,15 +42,9 @@ and value =
   | RecClosure of var * var * ast * value_env
   | Closure of var * ast * value_env
 
-and value_env
+and value_env = value Env_map.t
+
 (** The value environment which can be seen as a store of mappings  {!var} -> {!value} *)
 
-and type_env
+and type_env = tau Env_map.t
 (** The type environment which can be seen as a mapping from {!var} -> {!tau} *)
-
-val type_check : ast -> tau option
-(** 
-This function checks if the given AST is type safe:
-- returns {i Some(t)} if t is the type of the AST
-- returns {i None} if the the AST contains a type error 
-*)

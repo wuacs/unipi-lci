@@ -9,7 +9,7 @@ let variable = character(integer | character)* (* Any variable *)
 let white = (' ' | '\t')* | '\r' | '\n' | "\r\n" (* whitespace characters *)
 
 rule read = parse
-    | white {WHITE}
+    | white {read lexbuf}
     | "(" {LEFT_PAR}
     | ")" {RIGHT_PAR}
     | "->" {TYPE_ARROW}
