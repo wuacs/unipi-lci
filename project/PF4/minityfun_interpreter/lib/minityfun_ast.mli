@@ -25,12 +25,19 @@ type ast =
   | Val of value
   | Var of var
 
-(** Type representing the type of a term. {b Not sure about naming conventions?} *)
+(** Type representing the type of a term.
+
+{b Note}: Since a variable's type may be not known at some program point but still used
+in some expression we use the parameter {i context} to add where we have {i seen} this variable.
+*)
 and tau = Integer_t | 
           Boolean_t |
           Closure_t of tau * tau |
           Variable_t of var * context
 
+(** Type representing a context,
+e.g. the domain of some function({i Domain}) or the operand of some 
+operation({i Value}) *)
 and context = Domain 
             | Codomain
             | Value

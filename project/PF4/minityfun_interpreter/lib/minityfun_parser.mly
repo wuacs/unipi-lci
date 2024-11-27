@@ -12,6 +12,7 @@
 %token AND LESS MUL MINUS PLUS
 %token LEFT_PAR RIGHT_PAR
 
+
 %start <ast> prog
 
 %%
@@ -25,18 +26,23 @@ term:
     | FUN ; x = VAR ; TYPE_SEP ; t = typing FUN_ARROW body = term {Fun(x, t, body)} 
     | o = operation {o}
 operation:
-    | t1 = operation AND t2 = basic_term {Op(t1, And, t2)}
-    | t1 = operation LESS t2 = basic_term {Op(t1, Less, t2)}
-    | t1 = operation MUL t2 = basic_term {Op(t1, Mul, t2)}
-    | t1 = operation MINUS t2 = basic_term {Op(t1, Minus, t2)}
-    | t1 = operation PLUS t2 = basic_term {Op(t1, Plus, t2)}
+    | t1 = operation; o = op; t2 = basic_term {Op(t1, o, t2)}
     | t = operation t1 = basic_term {App(t, t1)}
-    | t = basic_term {t}
+    | b = basic_term {b}
+%inline op:
+    | PLUS {Plus}
+    | MINUS {Minus}
+    | MUL {Mul}
+    | LESS {Less}
+    | AND {And}
 basic_term:
-    | i = INT {Val(Integer i)}
     | b = BOOL {Val(Boolean b)}
-    | v = VAR {Var(v)}
+    | v = VAR {Var(v)}  
+    | i = INT {Val(Integer i)}
+    | i = unary_op {i}
     | LEFT_PAR t = term RIGHT_PAR {t}
+unary_op:
+    | LEFT_PAR MINUS i = INT RIGHT_PAR {Val(Integer(-i))} 
 typing:
     | t = typing TYPE_ARROW t1 = basic_typing {Closure_t(t, t1)}
     | bt = basic_typing {bt}

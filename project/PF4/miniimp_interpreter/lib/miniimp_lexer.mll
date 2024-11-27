@@ -3,9 +3,9 @@
 }
 
 let character = ['a'-'z']
-let integer = ['0'-'9']+ (* Integer literals n*)
+let natural = ['0'-'9']+
 let boolean = "false"|"true" (* Booleans b *)
-let variable = character(integer | character)* (* Any variable *)
+let variable = character(natural | character)* (* Any variable *)
 let white = (' ' | '\t')* | '\r' | '\n' | "\r\n" (* whitespace characters *)
 
 rule read = parse
@@ -28,7 +28,7 @@ rule read = parse
     | "-" {MINUS}
     | "and" {AND}
     | "<" {LESS}
-    | integer {INT(Stdlib.int_of_string (Lexing.lexeme lexbuf))}
+    | natural {INT(Stdlib.int_of_string (Lexing.lexeme lexbuf))}
     | boolean {match (Lexing.lexeme lexbuf) with | "false"-> BOOL(false) | _ -> BOOL(true)}
     | variable {VAR((Lexing.lexeme lexbuf))}
     | eof {EOF}

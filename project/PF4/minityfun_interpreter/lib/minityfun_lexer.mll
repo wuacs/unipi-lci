@@ -3,11 +3,14 @@
 }
 
 let character = ['a'-'z']
-let integer = ['0'-'9']+
+let natural = ['0'-'9']+
 let boolean = "false"|"true"
-let variable = character(integer | character)* (* Any variable *)
-let white = (' ' | '\t')* | '\r' | '\n' | "\r\n" (* whitespace characters *)
-
+let variable = character(natural|character)*
+let white = 
+    (' ' | '\t')*   |
+    '\r'            | 
+    '\n'            | 
+    "\r\n"
 rule read = parse
     | white {read lexbuf}
     | "(" {LEFT_PAR}
@@ -31,7 +34,7 @@ rule read = parse
     | "int" {INT_TYPE}
     | "bool" {BOOL_TYPE}
     | boolean {match (Lexing.lexeme lexbuf) with | "false"-> BOOL(false) | _ -> BOOL(true)}
-    | integer {INT(int_of_string (Lexing.lexeme lexbuf))}
+    | natural {INT(int_of_string (Lexing.lexeme lexbuf))}
     | variable {VAR(Lexing.lexeme lexbuf)} 
     | eof {EOF}
     | _ as c { failwith (Printf.sprintf "unexpected character: %C" c) }

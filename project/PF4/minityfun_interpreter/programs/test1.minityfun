@@ -1,0 +1,9 @@
+// This program does pass type checking a function cannot
+// return a closure even though it is easy to see how it might
+// (Hint: function typing returns their closure as in our case
+// we lazily made them return their codomain type since
+// the only types allowed are int and boolean)
+
+let x = 42 in
+    letfun f k: int = (fun y : int => (y < x)) in 
+        let g = (f 10) in g 10
