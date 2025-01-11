@@ -12,3 +12,5 @@ val update_in: Minirisc.scomm Cfg.control_flow_graph -> Cfg.node -> block_analys
 val update_out: Minirisc.scomm Cfg.control_flow_graph -> Cfg.node -> block_analysis_state Cfg.NodeMap.t -> block_analysis_state Cfg.NodeMap.t
 
 val compute_top: Minirisc.scomm Cfg.control_flow_graph -> RegisterSet.t
+
+val global_update: 
