@@ -33,7 +33,7 @@ val miniimp_cfg_to_minirisc: Miniimp_ast.miniimp_simple control_flow_graph -> Mi
 val miniimp_cfg_to_dot: Miniimp_ast.miniimp_simple control_flow_graph -> string
 
 (* Function to compute the reversed map *)
-val compute_precedessors: 'a control_flow_graph -> node list NodeMap.t
+val compute_reversed_map: 'a control_flow_graph -> node list NodeMap.t
 
 val in_register: Minirisc.register
 

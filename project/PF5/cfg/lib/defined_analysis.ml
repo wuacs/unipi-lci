@@ -1,12 +1,5 @@
-module RegisterSet = Set.Make(struct 
-  type t = Minirisc.register
-  let compare = (fun x y -> compare x y)
-end )
-
-type block_analysis_state = {
-    in_set: RegisterSet.t;
-    out_set: RegisterSet.t
-}
+module RegisterSet = Minirisc.RegisterSet
+type block_analysis_state = Data_flow_utils.block_analysis_state
 
 (* Given a minirisc instruction returns in a RegisterSet all the registers 
 referenced in the instruction *)
@@ -32,11 +25,7 @@ let compute_top (cfg : Minirisc.scomm Cfg.control_flow_graph) : RegisterSet.t =
       in 
       RegisterSet.union res set) cfg.code RegisterSet.empty
 
-let extract_defined_registers (stmt : Minirisc.scomm) : RegisterSet.t = 
-  match stmt with
-  | Minirisc.Load(_, r) -> RegisterSet.add r RegisterSet.empty 
-  | Minirisc.LoadI(_, r) -> RegisterSet.add r RegisterSet.empty
-  | _ -> RegisterSet.empty
+
 
 let update_in 
   (cfg : Minirisc.scomm Cfg.control_flow_graph)
@@ -46,11 +35,11 @@ let update_in
   : block_analysis_state Cfg.NodeMap.t = 
   let blk = Cfg.NodeMap.find node  bas in
     if node == cfg.entry then
-      (Cfg.NodeMap.add node ({in_set = (RegisterSet.add Cfg.in_register RegisterSet.empty); out_set = blk.out_set}) bas)
+      (Cfg.NodeMap.add node ({Data_flow_utils.in_set = (RegisterSet.add Cfg.in_register RegisterSet.empty); out_set = blk.out_set}) bas)
     else
       let precedessors = Cfg.NodeMap.find node reversed in
       Cfg.NodeMap.add node 
-      {in_set = List.fold_left (fun set node ->
+      {Data_flow_utils.in_set = List.fold_left (fun set node ->
         RegisterSet.inter set (Cfg.NodeMap.find node bas).out_set) 
         RegisterSet.empty precedessors; out_set = blk.out_set} bas
 
@@ -60,22 +49,19 @@ let update_out
   (bas : block_analysis_state Cfg.NodeMap.t) 
   : block_analysis_state Cfg.NodeMap.t = 
   let blk_state = Cfg.NodeMap.find node bas in
-  let blk_code = Cfg.NodeMap.find node cfg.code in
-  let declared_registers = List.fold_left 
-  (fun acc x -> (RegisterSet.union acc (extract_defined_registers x))) RegisterSet.empty blk_code in
-  Cfg.NodeMap.add node {in_set = blk_state.in_set; out_set = RegisterSet.union blk_state.in_set declared_registers} bas
+  let declared_registers = Data_flow_utils.extract_defined_registers cfg node in
+  Cfg.NodeMap.add node {Data_flow_utils.in_set = blk_state.in_set; out_set = RegisterSet.union blk_state.in_set declared_registers} bas
 
 let initialize_state_with_top
   (cfg: Minirisc.scomm Cfg.control_flow_graph) : block_analysis_state Cfg.NodeMap.t =
   let top = compute_top cfg in
-  Cfg.NodeSet.fold (fun node basm -> Cfg.NodeMap.add node {in_set = top; out_set = top} basm) cfg.nodes Cfg.NodeMap.empty
-
+  Cfg.NodeSet.fold (fun node basm -> Cfg.NodeMap.add node {Data_flow_utils.in_set = top; out_set = top} basm) cfg.nodes Cfg.NodeMap.empty
 
 let defined_analysis
   (cfg: Minirisc.scomm Cfg.control_flow_graph) = 
       let top = compute_top cfg 
     in
-      let reversed = Cfg.compute_precedessors cfg 
+      let reversed = Cfg.compute_reversed_map cfg 
     in
       let start = initialize_state_with_top cfg 
     in
@@ -92,11 +78,11 @@ let defined_analysis
                 in
                   let new_local = (Cfg.NodeMap.find x new_global)
                 in
-                  if  ((RegisterSet.cardinal (new_local.out_set)) != (RegisterSet.cardinal initial.out_set)) ||
-                      (RegisterSet.cardinal (new_local.in_set) != (RegisterSet.cardinal initial.in_set)) then
-                    (new_global, true)
+                  if  ((RegisterSet.cardinal (new_local.out_set)) != (RegisterSet.cardinal initial.Data_flow_utils.out_set)) ||
+                      (RegisterSet.cardinal (new_local.in_set) != (RegisterSet.cardinal initial.Data_flow_utils.in_set)) then
+                    (new_global, false)
                 else
-                    (new_global, propg)) state (state, false)) in
+                    (new_global, propg)) state (state, true)) in
                   compute_fixpoint cfg (snd res) (fst res)
     in
       RegisterSet.equal (Cfg.NodeMap.find cfg.exit (compute_fixpoint cfg false start)).out_set top 

@@ -1,5 +1,10 @@
 type register = int
 
+module RegisterSet = Set.Make(struct 
+  type t = register
+  let compare = (fun x y -> compare x y)
+end )
+
 type label = String
 
 type mem_ram = (int -> int)

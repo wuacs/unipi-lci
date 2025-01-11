@@ -1,5 +1,7 @@
 type register = int
 
+module RegisterSet : Set.S with type elt = register
+
 type label = String
 
 type mem_ram = (int -> int)
