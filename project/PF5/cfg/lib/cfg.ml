@@ -30,7 +30,27 @@ type 'a control_flow_graph = {
 type coercable = Boolean of Miniimp_ast.b_exp
                 | Integer of Miniimp_ast.a_exp
 
-let guard_register : Minirisc.register = 1
+let in_register : Minirisc.register = 0
+
+let out_register : Minirisc.register = 1
+
+let guard_register : Minirisc.register = 2
+
+(* Function to compute the reversed map *)
+let compute_reversed_map (cfg : 'a control_flow_graph) : (node list) NodeMap.t =
+  NodeMap.fold (fun src_node edge_list reversed_map ->
+    List.fold_left (fun acc edge ->
+      match edge with
+      | Uncond n ->
+          let updated_list = src_node :: (NodeMap.find_opt n acc |> Option.value ~default:[]) in
+          NodeMap.add n updated_list acc
+      | Cond (n1, n2) ->
+          let updated_list1 = src_node :: (NodeMap.find_opt n1 acc |> Option.value ~default:[]) in
+          let updated_list2 = src_node :: (NodeMap.find_opt n2 acc |> Option.value ~default:[]) in
+          NodeMap.add n2 updated_list2 (NodeMap.add n1 updated_list1 acc)
+      | None -> acc
+    ) reversed_map edge_list
+  ) cfg.edges NodeMap.empty
 
 let push_instruction 
   (node : node) 
@@ -40,7 +60,6 @@ let push_instruction
     match x with 
     | Some(y) -> Some((List.cons command y))
     | None -> Some([command])) blk_map
-
 
 let get_next_uid_node : node -> node = fun x -> 
   match x with

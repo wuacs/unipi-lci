@@ -11,5 +11,5 @@
 (library
  (name cfg)
  (public_name cfg)
- (modules cfg data_flow_analysis)
+ (modules cfg data_flow_analysis defined_analysis)
  (libraries miniimp_ast minirisc))
