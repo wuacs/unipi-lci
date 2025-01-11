@@ -41,8 +41,7 @@ let update_in (cfg : mriscfg) (node : node) (stateMap : stateMap) : stateMap =
   let new_in = RegSet.union (used_registers cfg node) (RegSet.diff local_state.out_set (Data_flow_utils.extract_defined_registers cfg node)) in
   Nodemap.add node {Data_flow_utils.in_set = new_in; out_set = local_state.out_set} stateMap 
 
-let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap) : stateMap = 
-  let reversed = Cfg.compute_reversed_map cfg in
+let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap) (reversed : (node list) Nodemap.t) : stateMap = 
   let blk = Cfg.NodeMap.find node  bas in
   if node == cfg.exit then
     (Cfg.NodeMap.add node ({Data_flow_utils.in_set = blk.in_set; out_set = RegSet.singleton Cfg.out_register}) bas)
@@ -53,5 +52,30 @@ let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap) : stateMap =
       RegSet.union set (Cfg.NodeMap.find node bas).in_set) 
       RegSet.empty precedessors} bas
 
-(**let liveness_analysis (cfg: mriscfg) : stateMap = *)
+let liveness_analysis (cfg: mriscfg) : stateMap = 
+      let reversed = Cfg.compute_reversed_map cfg 
+    in
+      let start = Data_flow_utils.initialize_with_bottom cfg 
+    in
+      let rec compute_fixpoint 
+      (cfg : mriscfg)
+      (equal : bool)
+      (state: stateMap) : 
+      stateMap = 
+      match equal with
+      | true -> state
+      | false -> let res = (Cfg.NodeMap.fold 
+                (fun x initial (new_state, propg) -> 
+                  let new_global = update_out cfg x (update_in cfg x new_state) reversed
+                in
+                  let new_local = (Cfg.NodeMap.find x new_global)
+                in
+                  if  ((RegSet.cardinal (new_local.out_set)) != (RegSet.cardinal initial.Data_flow_utils.out_set)) ||
+                      (RegSet.cardinal (new_local.in_set) != (RegSet.cardinal initial.Data_flow_utils.in_set)) then
+                    (new_global, false)
+                else
+                    (new_global, propg)) state (state, true)) in
+                  compute_fixpoint cfg (snd res) (fst res)
+    in
+      compute_fixpoint cfg false start
 
