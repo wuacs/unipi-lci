@@ -1,0 +1,5 @@
+(executable
+ (package cfg)
+ (public_name cfg)
+ (name main)
+ (libraries cfg))

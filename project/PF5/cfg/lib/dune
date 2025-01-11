@@ -1,0 +1,15 @@
+(library
+ (name miniimp_ast)
+ (public_name miniimp_ast)
+ (modules miniimp_ast))
+
+(library
+ (name minirisc)
+ (public_name minirisc)
+ (modules minirisc))
+
+(library
+ (name cfg)
+ (public_name cfg)
+ (modules cfg data_flow_analysis)
+ (libraries miniimp_ast minirisc))
