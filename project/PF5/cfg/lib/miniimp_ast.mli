@@ -19,6 +19,4 @@ type command = Skip
 
 type program = {input: string; output: string; command: command} 
 
-type miniimp_simple = Skip 
-                    | Assignment of string * a_exp
-                    | Guard of b_exp
+type miniimp_simple = Skip | Assignment of string * a_exp | Guard of b_exp

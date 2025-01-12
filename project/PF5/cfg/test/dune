@@ -1,2 +1,3 @@
-(test
- (name cfg))
+(tests
+ (names cfg)
+  (libraries alcotest cfg))

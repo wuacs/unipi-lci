@@ -2,6 +2,8 @@ type register = int
 
 module RegisterSet : Set.S with type elt = register
 
+module RegisterMap : Map.S with type key = register
+
 type label = String
 
 type mem_ram = (int -> int)

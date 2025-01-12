@@ -1,8 +1,8 @@
 type node = Label of int
 
 module NodeSet : Set.S with type elt = node
-
 module NodeMap : Map.S with type key = node
+module ImpAst = Miniimp.ImpAst
 
 (** A Node may have
 1. one outgoing edge, represented by `Uncond`
@@ -23,14 +23,14 @@ type 'a control_flow_graph = {
   code : ('a list) NodeMap.t;
 }
 
-type coercable = Boolean of Miniimp_ast.b_exp
-                | Integer of Miniimp_ast.a_exp
+type coercable = Boolean of ImpAst.b_exp
+                | Integer of ImpAst.a_exp
 
-val translate_miniimp: Miniimp_ast.program -> Miniimp_ast.miniimp_simple control_flow_graph
+val translate_miniimp: ImpAst.program -> ImpAst.miniimp_simple control_flow_graph
 
-val miniimp_cfg_to_minirisc: Miniimp_ast.miniimp_simple control_flow_graph -> Minirisc.scomm control_flow_graph
+val miniimp_cfg_to_minirisc: ImpAst.miniimp_simple control_flow_graph -> Minirisc.scomm control_flow_graph
 
-val miniimp_cfg_to_dot: Miniimp_ast.miniimp_simple control_flow_graph -> string
+val miniimp_cfg_to_dot: ImpAst.miniimp_simple control_flow_graph -> string
 
 (* Function to compute the reversed map *)
 val compute_reversed_map: 'a control_flow_graph -> node list NodeMap.t

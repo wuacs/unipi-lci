@@ -10,6 +10,8 @@ module NodeMap = Map.Make(struct
   let compare = (fun x y -> compare x y)
 end)
 
+module ImpAst = Miniimp.ImpAst
+
 module StringMap = Map.Make(String)
 
 type next_codomain = 
@@ -27,8 +29,8 @@ type 'a control_flow_graph = {
   code : ('a list) NodeMap.t;
 }
 
-type coercable = Boolean of Miniimp_ast.b_exp
-                | Integer of Miniimp_ast.a_exp
+type coercable = Boolean of ImpAst.b_exp
+                | Integer of ImpAst.a_exp
 
 let in_register : Minirisc.register = 0
 
@@ -54,8 +56,8 @@ let compute_reversed_map (cfg : 'a control_flow_graph) : (node list) NodeMap.t =
 
 let push_instruction 
   (node : node) 
-  (command : Miniimp_ast.miniimp_simple)
-  (blk_map : ((Miniimp_ast.miniimp_simple List.t) NodeMap.t)) : ((Miniimp_ast.miniimp_simple List.t) NodeMap.t) = 
+  (command : ImpAst.miniimp_simple)
+  (blk_map : ((ImpAst.miniimp_simple List.t) NodeMap.t)) : ((ImpAst.miniimp_simple List.t) NodeMap.t) = 
   NodeMap.update node (fun x -> 
     match x with 
     | Some(y) -> Some((List.cons command y))
@@ -112,10 +114,17 @@ let create_cfg nodes edges entry exit code = {
     nodes; edges; entry; exit; code
 }
 
-let translate_miniimp (program : Miniimp_ast.program) : Miniimp_ast.miniimp_simple control_flow_graph = 
+let reverse_code_set (cfg: 'a control_flow_graph): 'a control_flow_graph =
+  let code = cfg.code in 
+  let newcode = NodeMap.fold (fun nodeId list newMap -> 
+    NodeMap.add nodeId (List.rev list) newMap)
+    code NodeMap.empty in
+  { cfg with code = newcode}
+
+let translate_miniimp (program : ImpAst.program) : ImpAst.miniimp_simple control_flow_graph = 
   let rec translate_command 
-    (cfg : Miniimp_ast.miniimp_simple control_flow_graph)
-    (command : Miniimp_ast.command) : Miniimp_ast.miniimp_simple control_flow_graph =
+    (cfg : ImpAst.miniimp_simple control_flow_graph)
+    (command : ImpAst.command) : ImpAst.miniimp_simple control_flow_graph =
       match command with
       | Assign(x, y) -> create_cfg 
                         cfg.nodes
@@ -149,7 +158,7 @@ let translate_miniimp (program : Miniimp_ast.program) : Miniimp_ast.miniimp_simp
       | Cond(bexpr, c1, c2) -> 
                           let guard_blk = push_instruction (* The guard represents creating branches so we cannot put any more things here *)
                             cfg.entry 
-                            (Guard bexpr) 
+                            (ImpAst.Guard bexpr) 
                             cfg.code
                         in
                           let cfg_c1 = translate_command (create_cfg 
@@ -181,7 +190,7 @@ let translate_miniimp (program : Miniimp_ast.program) : Miniimp_ast.miniimp_simp
                           (* Since guard has an entry point we cannot use our starting block *)
                           let guard_block = get_next_uid_node cfg.entry 
                         in
-                          let with_grd = push_instruction guard_block (Guard bexpr) cfg.code
+                          let with_grd = push_instruction guard_block (ImpAst.Guard bexpr) cfg.code
                         in
                           let cfg_c1 = translate_command 
                           (create_cfg 
@@ -201,9 +210,9 @@ let translate_miniimp (program : Miniimp_ast.program) : Miniimp_ast.miniimp_simp
                         cfg.entry
                         whiles_exit
                         cfg_c1.code
-      | Skip -> create_cfg cfg.nodes cfg.edges cfg.entry cfg.entry (push_instruction cfg.entry Skip cfg.code)
+      | Skip -> create_cfg cfg.nodes cfg.edges cfg.entry cfg.entry (push_instruction cfg.entry ImpAst.Skip cfg.code)
                       in
-                        translate_command (create_cfg empty_node_set empty_edge_map (Label 0) dummy_node_val empty_code_map) program.command 
+                        reverse_code_set (translate_command (create_cfg empty_node_set empty_edge_map (Label 0) dummy_node_val empty_code_map) program.command)
 
 
 let node_to_string (node : node) : string =
@@ -247,7 +256,7 @@ let accumulate_and_convert_simple_statements
           List.fold_left (fun acc x -> fold_fun acc (helper x) ) base_value l
     | None -> on_empty_block
 
-let get_miniimp_simple_statements (node : node) (map : (Miniimp_ast.miniimp_simple list) NodeMap.t) : string = 
+let get_miniimp_simple_statements (node : node) (map : (ImpAst.miniimp_simple list) NodeMap.t) : string = 
     accumulate_and_convert_simple_statements 
       node  
       map 
@@ -274,7 +283,7 @@ let miniimp_cfg_to_dot (cfg : 'a control_flow_graph) : string =
 
 let coerce (x : coercable) : int option = 
   match x with
-  | Boolean(b) -> 
+  | Boolean b -> 
     (match b with 
     | Bval false -> Some 0
     | Bval true -> Some 1
@@ -318,7 +327,7 @@ let convert_minirisc_bop
     let eval_right = helper_fun right_register y id_ram in
     ((fst eval_left) @ (fst eval_right) @ (rr left_register right_register register), snd eval_right)
 
-let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register) (expr : Miniimp_ast.a_exp) 
+let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register) (expr : ImpAst.a_exp) 
    (ram : int StringMap.t): (Minirisc.scomm list * Minirisc.register) = 
   let rec helper_arithemtic
     (register : Minirisc.register) 
@@ -327,22 +336,22 @@ let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register) (expr
     match expr with 
     | Integer expr -> (
       match expr with
-      | Miniimp_ast.Minus(x, y) ->
+      | ImpAst.Minus(x, y) ->
         convert_minirisc_bop register (Integer x, Integer y) id_ram helper_arithemtic
           (fun x y z -> [Minirisc.Rtoi(Minirisc.SubI, y, x, z)]) 
           (fun x y z -> [Minirisc.Rtoi(Minirisc.SubI, x, y, z)])
           (fun x y z -> [Minirisc.Rtor(Minirisc.Sub, x, y, z)])
-      | Miniimp_ast.Times(x, y) ->
+      | ImpAst.Times(x, y) ->
         convert_minirisc_bop register (Integer x, Integer y) id_ram helper_arithemtic
           (fun x y z -> [Minirisc.Rtoi(Minirisc.MultI, y, x, z)])
           (fun x y z -> [Minirisc.Rtoi(Minirisc.MultI, x, y, z)])
           (fun x y z -> [Minirisc.Rtor(Minirisc.Mult, x, y, z)])
-      | Miniimp_ast.Plus(x, y) ->
+      | ImpAst.Plus(x, y) ->
         convert_minirisc_bop register (Integer x, Integer y) id_ram helper_arithemtic
           (fun x y z -> [Minirisc.Rtoi(Minirisc.AddI, y, x, z)])
           (fun x y z -> [Minirisc.Rtoi(Minirisc.AddI, x, y, z)])
           (fun x y z -> [Minirisc.Rtor(Minirisc.Add, x, y, z)])
-      | Miniimp_ast.Substitue s ->
+      | ImpAst.Substitue s ->
         let address_register = get_new_register register in
         ([Minirisc.LoadI(StringMap.find s id_ram, address_register); Minirisc.Load(address_register, register)], address_register)
       | _ -> failwith "Constants are catched"
@@ -351,7 +360,7 @@ let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register) (expr
   helper_arithemtic available (Integer expr) ram
 
 let convert_miniimp_boolean_to_minirisc (available : Minirisc.register) 
-  (expr : Miniimp_ast.b_exp) (ram : int StringMap.t) : (Minirisc.scomm list * Minirisc.register) = 
+  (expr : ImpAst.b_exp) (ram : int StringMap.t) : (Minirisc.scomm list * Minirisc.register) = 
   let rec helper_boolean
     (register : Minirisc.register) 
     (expr : coercable) 
@@ -359,12 +368,12 @@ let convert_miniimp_boolean_to_minirisc (available : Minirisc.register)
     match expr with
       | Boolean expr -> 
         (match expr with 
-        | Miniimp_ast.And(x, y) -> 
+        | ImpAst.And(x, y) -> 
           convert_minirisc_bop register (Boolean x, Boolean y) id_ram helper_boolean
             (fun x y z -> [Minirisc.Rtoi(Minirisc.AndI, y, x, z)])
             (fun x y z -> [Minirisc.Rtoi(Minirisc.AndI, x, y, z)])
             (fun x y z -> [Minirisc.Rtor(Minirisc.And, x, y, z)])
-        | Miniimp_ast.Minor(x, y) -> 
+        | ImpAst.Minor(x, y) -> 
           let left_register = get_new_register register in
           let left_expr = convert_miniimp_arithmetic_to_minirisc left_register x id_ram in
           let right_register = get_new_register (snd left_expr) in
@@ -375,21 +384,21 @@ let convert_miniimp_boolean_to_minirisc (available : Minirisc.register)
         in
         helper_boolean available (Boolean expr) ram
 
-let miniimp_cfg_to_minirisc (imp_cfg: Miniimp_ast.miniimp_simple control_flow_graph) 
+let miniimp_cfg_to_minirisc (imp_cfg: ImpAst.miniimp_simple control_flow_graph) 
   : (Minirisc.scomm control_flow_graph) = 
     let map_simple_imp_to_simple_risc 
-    (stmt : Miniimp_ast.miniimp_simple)
+    (stmt : ImpAst.miniimp_simple)
     (available: Minirisc.register)
     (string_to_ram : int StringMap.t): 
     (Minirisc.scomm list * Minirisc.register) =
       match stmt with
-      | Miniimp_ast.Skip -> ([Minirisc.Nop], available)
-      | Miniimp_ast.Assignment(str, aexp)  -> 
+      | ImpAst.Skip -> ([Minirisc.Nop], available)
+      | ImpAst.Assignment(str, aexp)  -> 
         let address = StringMap.find str string_to_ram in                                    
         let aexp_register = get_new_register available in
         let eval_expr = convert_miniimp_arithmetic_to_minirisc aexp_register aexp string_to_ram in
         ([Minirisc.LoadI(address, available)] @ (fst eval_expr) @ [Minirisc.Store(aexp_register, available)], snd eval_expr)
-      | Miniimp_ast.Guard bexp -> 
+      | ImpAst.Guard bexp -> 
         convert_miniimp_boolean_to_minirisc available bexp string_to_ram
   in
     let code_translator 

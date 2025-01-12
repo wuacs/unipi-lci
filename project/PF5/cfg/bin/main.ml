@@ -1,64 +1,13 @@
 open Cfg
-open Miniimp_ast
+open Miniimp
 
-let () = 
-  let prg = 
-    Sequence(
-      Assign("x", Substitue "in"),
-      Sequence(
-        Assign("out", Aval 0),
-        Cond(
-          Not(Minor(Substitue "x", Aval 2)),
-          Sequence(
-            Assign("x", Minus(Substitue "x", Aval 1)),
-            Sequence(
-              Assign("out", Aval 1),
-              Sequence(
-                Assign("second", Aval 0),
-                While(
-                  Not(Minor(Substitue "x", Aval 2)),
-                  Sequence(
-                    Assign("temp", Substitue "out"),
-                    Sequence(
-                      Assign("out", Plus(Substitue "out", Substitue "second")),
-                      Sequence(
-                        Assign("x", Minus(Substitue "x", Aval 1)),
-                        Assign("second", Substitue "temp")
-                      )
-                    )
-                  )
-                )
-              )
-            )
-          ),
-          Skip
-        )
-      )
-    )
-
-(*let prg = 
-    Sequence
-    (
-      Assign("x", Aval 2),
-      Cond(Minor(Substitue "y", Aval 0),
-          Sequence
-          (
-            Assign("y", Plus(Substitue "x", Aval 3)),
-            Assign("x", Substitue "y")
-          ),
-          Assign
-          (
-            "x", Minus(Aval 1, Substitue "y")
-          )
-          )
-    )*)
-  in 
-    let prog = {input = "y"; output = "x"; command = prg}
-  in 
-    let dot_string = miniimp_cfg_to_dot (translate_miniimp prog) 
+let () =  
+    let channel = open_in Sys.argv.(1) 
   in
-    let oc = open_out "cfg.dot" 
-  in
-    Printf.fprintf oc "%s" dot_string;
-    close_out oc
+    match parse_with_errors (Lexing.from_channel channel) with
+    | Some prog -> let oc = open_out "./dot/fibonacci.dot" 
+                  in
+                    Printf.fprintf oc "%s" (miniimp_cfg_to_dot (translate_miniimp prog)) ;
+                  close_out oc
   
+    | None -> print_string "no good"
