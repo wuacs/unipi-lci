@@ -9,3 +9,9 @@
  (public_name dfa)
  (name dfa)
  (libraries cfg data_flow_analysis))
+
+(executable
+ (package cfg)
+ (public_name imp)
+ (name imp)
+ (libraries cfg data_flow_analysis))

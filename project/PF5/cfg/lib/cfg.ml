@@ -2,7 +2,6 @@ type node = Label of int
 
 module NodeSet = Set.Make (struct
   type t = node
-
   let compare x y = compare x y
 end)
 
@@ -169,15 +168,17 @@ let translate_miniimp (program : ImpAst.program) :
             c2
         in
         let ifs_exit = get_next_uid_node cfg_c2.exit in
+        let after_skipping = push_instruction ifs_exit (ImpAst.Skip) cfg_c2.code in
         create_cfg
           (add_list_node_to_set
              [ ifs_exit; cfg_c1.entry; cfg_c1.exit; cfg_c2.entry; cfg_c2.exit ]
              cfg_c2.nodes)
+          
           (add_edge_bi cfg.entry cfg_c1.entry cfg_c2.entry
              (add_list_edges_mono
                 [ (cfg_c1.exit, ifs_exit); (cfg_c2.exit, ifs_exit) ]
                 cfg_c2.edges))
-          cfg.entry ifs_exit cfg_c2.code
+          cfg.entry ifs_exit after_skipping
     | While (bexpr, c1) ->
         (* Since guard has an entry point we cannot use our starting block *)
         let guard_block = get_next_uid_node cfg.entry in
@@ -194,6 +195,7 @@ let translate_miniimp (program : ImpAst.program) :
         (* Since while's body final block should jump back to beginning we need an additional block for
            ending *)
         let whiles_exit = get_next_uid_node cfg_c1.exit in
+        let after_adding_skips = push_instruction whiles_exit (ImpAst.Skip) cfg_c1.code in
         create_cfg
           (add_list_node_to_set
              [ whiles_exit; cfg_c1.exit; cfg_c1.entry; guard_block ]
@@ -202,16 +204,17 @@ let translate_miniimp (program : ImpAst.program) :
              (add_list_edges_mono
                 [ (cfg_c1.exit, guard_block); (cfg.entry, guard_block) ]
                 cfg_c1.edges))
-          cfg.entry whiles_exit cfg_c1.code
+          cfg.entry whiles_exit after_adding_skips
     | Skip ->
         create_cfg cfg.nodes cfg.edges cfg.entry cfg.entry
           (push_instruction cfg.entry ImpAst.Skip cfg.code)
   in
-  reverse_code_set
+  let cfg = (reverse_code_set
     (translate_command
        (create_cfg empty_node_set empty_edge_map (Label 0) dummy_node_val
           empty_code_map)
-       program.command)
+       program.command)) in
+    {cfg with edges = NodeMap.add cfg.exit [] cfg.edges}
 
 let node_to_string (node : node) : string =
   match node with Label n -> string_of_int n
@@ -259,8 +262,8 @@ let miniimp_cfg_to_dot (cfg : ImpAst.miniimp_simple control_flow_graph) : string
       (fun node acc ->
         acc
         ^ Printf.sprintf "  %s [label=\"%s\"];\n" (node_to_string node)
-            (fold_left_code_blocks node cfg.code miniimp_simple_to_string ""
-               "SKIP" (fun ni acc -> ni ^ " \\n " ^ acc)))
+            (fold_left_code_blocks node cfg.code miniimp_simple_to_string "SKIP"
+               "" (fun ni acc -> ni ^ " \\n " ^ acc)))
       cfg.nodes ""
   in
 

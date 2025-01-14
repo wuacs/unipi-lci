@@ -7,9 +7,9 @@ digraph G {
   1 [label=" \n CopyR3 => R14 \n SubIR14 => 1 => R13 \n CopyR13 => R3 \n LoadI 1 => R16 \n CopyR16 => R1 \n LoadI 0 => R18 \n CopyR18 => R17"];
   2 [label=" \n CopyR3 => R22 \n LoadI 2 => R23 \n LessR22 => R23 => R21 \n NotR21 => R20"];
   3 [label=" \n CopyR1 => R26 \n CopyR26 => R25 \n CopyR1 => R29 \n CopyR17 => R30 \n AddR29 => R30 => R28 \n CopyR28 => R1 \n CopyR3 => R33 \n SubIR33 => 1 => R32 \n CopyR32 => R3 \n CopyR25 => R35 \n CopyR35 => R17"];
-  4 [label="Nop"];
-  5 [label=" \n LoadI 2 => R38 \n CopyR38 => R1"];
-  6 [label="Nop"];
+  4 [label=" \n Nop"];
+  5 [label=" \n LoadI 2 => R40 \n CopyR40 => R1"];
+  6 [label=" \n Nop"];
 0 -> 1 [label="true"];
 0 -> 5 [label="false"];1 -> 2;
 2 -> 3 [label="true"];

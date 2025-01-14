@@ -1,0 +1,19 @@
+digraph G {
+  // Entry node
+  0 [shape=ellipse, color=green];
+  // Exit node
+  6 [shape=ellipse, color=red];
+  0 [label=" \n Assignment to x \n Assignment to out \n GUARD"];
+  1 [label=" \n Assignment to x \n Assignment to out \n Assignment to second"];
+  2 [label=" \n GUARD"];
+  3 [label=" \n Assignment to temp \n Assignment to out \n Assignment to x \n Assignment to second"];
+  4 [label=" \n SKIP"];
+  5 [label=" \n Assignment to out"];
+  6 [label=" \n SKIP"];
+0 -> 1 [label="true"];
+0 -> 5 [label="false"];1 -> 2;
+2 -> 3 [label="true"];
+2 -> 4 [label="false"];3 -> 2;
+4 -> 6;
+5 -> 6;
+}
