@@ -1,0 +1,17 @@
+digraph G {
+  // Entry node
+  0 [shape=ellipse, color=green];
+  // Exit node
+  3 [shape=ellipse, color=red];
+  0 [label="Live-IN: [ R1\nR4\nR9\nR15\nR18\nR22\n ]
+  \n Live-OUT: [ R1\nR4\nR9\nR15\nR18\nR22\n ]"];
+  1 [label="Live-IN: [ R1\nR9\nR15\nR18\nR22\n ]
+  \n Live-OUT: [ R1\nR9\nR15\nR18\nR22\n ]"];
+  2 [label="Live-IN: [ R1\nR9\nR15\nR18\nR22\n ]
+  \n Live-OUT: [ R1\nR9\nR15\nR18\nR22\n ]"];
+  3 [label="Live-IN: [ R1\nR22\n ]
+  \n Live-OUT: [ R1\nR22\n ]"];
+0 -> 1;
+1 -> 2 [label="true"];
+1 -> 3 [label="false"];2 -> 1;
+}

@@ -2,4 +2,10 @@
  (package cfg)
  (public_name cfg)
  (name main)
- (libraries cfg))
+ (libraries cfg data_flow_analysis))
+
+(executable
+ (package cfg)
+ (public_name dfa)
+ (name dfa)
+ (libraries cfg data_flow_analysis))

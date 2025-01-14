@@ -22,7 +22,7 @@
 prg:
     |  t = MAIN ; c = command ; EOF {{input = fst t; output = snd t; command = c}} 
 command:
-    | t1  = command SEQ t2 = command {Sequence(t1, t2)}
+    | t1 = command SEQ t2 = command {Sequence(t1, t2)}
     | sc = simple_command {sc}
 loop_statement:
     | WHILE bool_expr = bool_expr DO c = block_command {While(bool_expr, c)}

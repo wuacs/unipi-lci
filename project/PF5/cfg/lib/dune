@@ -1,4 +1,5 @@
 ; For lexing and parsing
+
 (ocamllex miniimp_lexer)
 
 (menhir
@@ -17,7 +18,11 @@
 
 (library
  (name data_flow_analysis)
- (modules data_flow_analysis data_flow_utils defined_analysis liveness_analysis)
+ (modules
+  data_flow_analysis
+  data_flow_utils
+  defined_analysis
+  liveness_analysis)
  (libraries cfg minirisc))
 
 (library
