@@ -2,7 +2,6 @@ module RegisterSet = Minirisc.RegisterSet
 
 type block_analysis_state = Data_flow_utils.block_analysis_state
 
-
 let update_in (cfg : Minirisc.scomm Cfg.control_flow_graph) (node : Cfg.node)
     (bas : block_analysis_state Cfg.NodeMap.t)
     (reversed : Cfg.node list Cfg.NodeMap.t) :
@@ -33,8 +32,6 @@ let update_out (cfg : Minirisc.scomm Cfg.control_flow_graph) (node : Cfg.node)
     block_analysis_state Cfg.NodeMap.t =
   let blk_state = Cfg.NodeMap.find node bas in
   let declared_registers = Data_flow_utils.defined_registers cfg node in
-  print_int (RegisterSet.cardinal declared_registers);
-  print_endline "sep";
   Cfg.NodeMap.add node
     {
       Data_flow_utils.in_set = blk_state.in_set;
@@ -70,3 +67,12 @@ let defined_analysis (cfg : Minirisc.scomm Cfg.control_flow_graph) =
         compute_fixpoint cfg (snd res) (fst res)
   in
   compute_fixpoint cfg false start
+
+let check_for_undefinedness (cfg : Minirisc.scomm Cfg.control_flow_graph) : bool= 
+  let defined_analysis_result = defined_analysis cfg in
+    Cfg.NodeMap.fold (fun nodeId sets b -> 
+      match b with 
+      | true -> b
+      | _ -> match (RegisterSet.subset (Data_flow_utils.used_registers cfg nodeId) sets.Data_flow_utils.in_set) with
+            | true -> false
+            | _ -> true) defined_analysis_result false
