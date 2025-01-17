@@ -78,3 +78,5 @@ let defined_analysis_dot (cfg : Minirisc.scomm Cfg.control_flow_graph) : string 
     entry_str exit_str nodes_str edges_str
     
 let check_for_undefinedness = DefinedAnalysis.check_for_undefinedness
+
+let liveness_analysis = LiveAnalysis.liveness_analysis

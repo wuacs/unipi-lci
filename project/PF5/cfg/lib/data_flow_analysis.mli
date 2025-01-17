@@ -10,3 +10,6 @@ val defined_analysis_dot : Minirisc.scomm Cfg.control_flow_graph -> string
 
 (** Returns true if the control flow graph contains a, potentially, undefined register *)
 val check_for_undefinedness : Minirisc.scomm Cfg.control_flow_graph -> bool
+
+(** Returns the LIVE-IN and LIVE-OUT sets for each block in the CFG given in input *)
+val liveness_analysis : Minirisc.scomm Cfg.control_flow_graph -> Utils.block_analysis_state Cfg.NodeMap.t

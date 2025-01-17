@@ -23,3 +23,9 @@ val used_registers :
 (** Gets all the registers defined in the CFG *)
 val get_top : 
   Minirisc.scomm Cfg.control_flow_graph -> Minirisc.RegisterSet.t
+
+val extract_written_register :
+  Minirisc.scomm -> Minirisc.register option
+
+val extract_read_registers :
+  Minirisc.scomm -> Minirisc.RegisterSet.t

@@ -11,7 +11,8 @@ type block_analysis_state = {
   in_set : Minirisc.RegisterSet.t;
   out_set : Minirisc.RegisterSet.t;
 }
-let extract_read_register (stmt : riscomm) : RegSet.t =
+
+let extract_read_registers (stmt : riscomm) : RegSet.t =
   try
     match stmt with
     | Minirisc.Load (r1, _) -> RegSet.add r1 RegSet.empty
@@ -67,7 +68,7 @@ let used_registers (cfg : mriscfg) (node : node) : RegSet.t =
   let code_blk = Nodemap.find node cfg.code in
     snd (List.fold_left
       (fun (written, used) x ->
-        let new_used = RegSet.diff (extract_read_register x) written in
+        let new_used = RegSet.diff (extract_read_registers x) written in
         match extract_written_register x with
         | Some r -> (RegSet.add r written, RegSet.union used new_used)
         | None -> (written, RegSet.union used new_used))
@@ -81,7 +82,7 @@ let compute_top (cfg : Minirisc.scomm Cfg.control_flow_graph) : RegisterSet.t =
       let res =
         List.fold_left
           (fun accumulated_registers stmt ->
-            let blk_res = extract_read_register stmt in
+            let blk_res = extract_read_registers stmt in
             RegisterSet.union blk_res accumulated_registers)
           RegisterSet.empty stmts
       in
