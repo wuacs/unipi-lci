@@ -18,6 +18,7 @@
 
 (library
  (name data_flow_analysis)
+ (public_name data_flow_analysis)
  (modules
   data_flow_analysis
   data_flow_utils
@@ -33,6 +34,7 @@
 
 (library
  (name target_code)
+ (public_name target_code)
  (modules target_code)
  (libraries data_flow_analysis cfg minirisc))
 

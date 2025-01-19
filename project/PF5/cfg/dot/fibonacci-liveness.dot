@@ -4,19 +4,19 @@ digraph G {
   // Exit node
   6 [shape=ellipse, color=red];
   0 [label="Live-IN: [ R0\n ]
-  \n Live-OUT: [ R0\n ]"];
+    \n Live-OUT: [ R3\n ]"];
   1 [label="Live-IN: [ R3\n ]
-  \n Live-OUT: [ R3\n ]"];
+    \n Live-OUT: [ R1\nR3\nR17\n ]"];
   2 [label="Live-IN: [ R1\nR3\nR17\n ]
-  \n Live-OUT: [ R1\nR3\nR17\n ]"];
+    \n Live-OUT: [ R1\nR3\nR17\n ]"];
   3 [label="Live-IN: [ R1\nR3\nR17\n ]
-  \n Live-OUT: [ R1\nR3\nR17\n ]"];
+    \n Live-OUT: [ R1\nR3\nR17\n ]"];
   4 [label="Live-IN: [ R1\n ]
-  \n Live-OUT: [ R1\n ]"];
+    \n Live-OUT: [ R1\n ]"];
   5 [label="Live-IN: [  ]
-  \n Live-OUT: [  ]"];
+    \n Live-OUT: [ R1\n ]"];
   6 [label="Live-IN: [ R1\n ]
-  \n Live-OUT: [ R1\n ]"];
+    \n Live-OUT: [ R1\n ]"];
 0 -> 1 [label="true"];
 0 -> 5 [label="false"];1 -> 2;
 2 -> 3 [label="true"];

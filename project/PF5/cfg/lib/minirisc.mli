@@ -3,7 +3,7 @@ type register = int
 module RegisterSet : Set.S with type elt = register
 module RegisterMap : Map.S with type key = register
 
-type label = String
+type label = string
 type mem_ram = int -> int
 type mem_reg = register -> int
 type brop = Add | Sub | Mult | And | Less
@@ -23,3 +23,5 @@ type comm =
   | Simple of scomm
   | Jump of label
   | Cjump of register * label * label
+
+val minirisc_command_to_string : comm -> string

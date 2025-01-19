@@ -1,4 +1,10 @@
 (executable
+(package cfg)
+(public_name merging)
+(name merging)
+(libraries target_code))
+
+(executable
  (package cfg)
  (public_name cfg)
  (name main)

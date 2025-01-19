@@ -288,45 +288,12 @@ let miniimp_cfg_to_dot (cfg : ImpAst.miniimp_simple control_flow_graph) : string
     entry_str exit_str nodes_str edges_str
 
 let minirisc_cfg_to_dot (cfg : Minirisc.scomm control_flow_graph) : string  =
-  let register_to_string (reg : Minirisc.register) = 
-    "R" ^ string_of_int reg 
-  in
-  let brop_code_to_string (stmt : Minirisc.brop) : string = 
-    match stmt with 
-    | Minirisc.Add -> "Add"
-    | Minirisc.Mult -> "Mult"
-    | Minirisc.Less -> "Less"
-    | Minirisc.And -> "And"
-    | Minirisc.Sub -> "Sub"
-  in
-  let biop_code_to_string (stmt : Minirisc.biop) : string = 
-    match stmt with
-    | Minirisc.AddI -> "AddI"
-    | Minirisc.MultI -> "MultI"
-    | Minirisc.AndI -> "AndI"
-    | Minirisc.SubI -> "SubI"
-  in
-  let unaryop_code_to_string (stmt : Minirisc.urop) : string = 
-    match stmt with
-    | Minirisc.Copy -> "Copy"
-    | Minirisc.Not -> "Not"
-  in
-  let minirisc_simple_to_string (stmt : Minirisc.scomm) : string =
-    match stmt with
-    | Minirisc.Rtor(opcode, r1, r2, r3) -> brop_code_to_string opcode ^ (register_to_string r1) ^ " => " ^ (register_to_string r2) ^ " => " ^ (register_to_string r3)
-    | Minirisc.Rtoi(opcode, r1, n, r3) -> biop_code_to_string opcode ^ (register_to_string r1) ^ " => " ^ (string_of_int n) ^ " => " ^ (register_to_string r3)
-    | Minirisc.Rury(opcode, r1, r2) -> unaryop_code_to_string opcode ^ (register_to_string r1) ^ " => " ^ (register_to_string r2)
-    | Minirisc.Load(r1, r2) -> "Load " ^ (register_to_string r1) ^ " => " ^ (register_to_string r2)
-    | Minirisc.LoadI(n, r) -> "LoadI " ^ (string_of_int n) ^ " => " ^ (register_to_string r)
-    | Minirisc.Store(r1, r2) -> "Store " ^ (register_to_string r1) ^ " => " ^ (register_to_string r2)
-    | Minirisc.Nop -> "Nop"
-  in
   let nodes_str =
     NodeSet.fold
       (fun node acc ->
         acc
         ^ Printf.sprintf "  %s [label=\"%s\"];\n" (node_to_string node)
-            (fold_left_code_blocks node cfg.code minirisc_simple_to_string "Nop"
+            (fold_left_code_blocks node cfg.code (fun x -> Minirisc.minirisc_command_to_string(Simple(x))) "Nop"
               "" (fun ni acc -> ni ^ " \\n " ^ acc)))
       cfg.nodes ""
   in
