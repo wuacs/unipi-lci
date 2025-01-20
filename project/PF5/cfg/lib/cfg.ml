@@ -1,4 +1,6 @@
-type node = Label of int
+open Minirisc
+
+type node = Label of int [@@unboxed]
 
 module NodeSet = Set.Make (struct
   type t = node
@@ -17,7 +19,7 @@ type next_codomain = Uncond of node | Cond of (node * node) | None
 
 type 'a control_flow_graph = {
   nodes : NodeSet.t;
-  edges : next_codomain list NodeMap.t;
+  edges : next_codomain NodeMap.t;
   entry : node;
   exit : node;
   code : 'a list NodeMap.t;
@@ -25,8 +27,9 @@ type 'a control_flow_graph = {
 
 type coercable = Boolean of ImpAst.b_exp | Integer of ImpAst.a_exp
 
-let in_register= 0
-let out_register = 1
+let in_register= Id 0
+let out_register = Id 1
+let first_free_register = Id 2
 let empty_node_set = NodeSet.empty
 let empty_edge_map = NodeMap.empty
 let empty_code_map = NodeMap.empty
@@ -35,30 +38,24 @@ let third (_, _, t) = t
 let first (f, _, _) = f
 let second (_, s, _) = s
 
-(** Taken a control flow graph, it returns a mapping from nodes to 
-list of nodes. This mapping does not preserve the control flow information
-of the graph, as conditional jumps are flattened in the list in output. *)
 let compute_reversed_map (cfg : 'a control_flow_graph) : node list NodeMap.t =
   NodeMap.fold
-    (fun src_node edge_list reversed_map ->
-      List.fold_left
-        (fun acc edge ->
-          match edge with
+    (fun src_node type_edge reversed_map ->
+        match type_edge with
           | Uncond n ->
               let updated_list =
-                src_node :: (NodeMap.find_opt n acc |> Option.value ~default:[])
+                src_node :: (NodeMap.find_opt n reversed_map |> Option.value ~default:[])
               in
-              NodeMap.add n updated_list acc
+              NodeMap.add n updated_list reversed_map
           | Cond (n1, n2) ->
               let updated_list1 =
-                src_node :: (NodeMap.find_opt n1 acc |> Option.value ~default:[])
+                src_node :: (NodeMap.find_opt n1 reversed_map |> Option.value ~default:[])
               in
               let updated_list2 =
-                src_node :: (NodeMap.find_opt n2 acc |> Option.value ~default:[])
+                src_node :: (NodeMap.find_opt n2 reversed_map |> Option.value ~default:[])
               in
-              NodeMap.add n2 updated_list2 (NodeMap.add n1 updated_list1 acc)
-          | None -> acc)
-        reversed_map edge_list)
+              NodeMap.add n1 updated_list1 (NodeMap.add n2 updated_list2 reversed_map)
+          | None -> reversed_map)
     cfg.edges NodeMap.empty
 
 (** Pushes an instruction to the front of a particular node.*)
@@ -75,26 +72,16 @@ let get_next_uid_node : node -> node =
  fun x -> match x with Label v -> Label (v + 1)
 
  (** Registers are assigned incrementally *)
-let get_new_register (register : Minirisc.register) : Minirisc.register =
-  register + 1
+let get_new_register (register : register) : register =
+  Id ((get_reg_id register) + 1)
 
 let add_edge_mono (source : node) (sink : node)
-    (edges : next_codomain list NodeMap.t) : next_codomain list NodeMap.t =
-  NodeMap.update source
-    (fun x ->
-      match x with
-      | Some s -> Some (List.cons (Uncond sink) s)
-      | None -> Some [ Uncond sink ])
-    edges
+    (edges : next_codomain NodeMap.t) : next_codomain NodeMap.t =
+  NodeMap.add source (Uncond sink) edges
 
 let add_edge_bi (source : node) (sink_true : node) (sink_false : node)
-    (edges : next_codomain list NodeMap.t) : next_codomain list NodeMap.t =
-  NodeMap.update source
-    (fun x ->
-      match x with
-      | Some s -> Some (List.cons (Cond (sink_true, sink_false)) s)
-      | None -> Some [ Cond (sink_true, sink_false) ])
-    edges
+    (edges : next_codomain NodeMap.t) : next_codomain NodeMap.t =
+  NodeMap.add source (Cond (sink_true, sink_false)) edges
 
 let add_node_set (node : node) (set : NodeSet.t) : NodeSet.t =
   NodeSet.add node set
@@ -105,7 +92,7 @@ let rec add_list_node_to_set (node : node list) (set : NodeSet.t) : NodeSet.t =
   | [] -> set
 
 let rec add_list_edges_mono (ss : (node * node) list)
-    (edges : next_codomain list NodeMap.t) : next_codomain list NodeMap.t =
+    (edges : next_codomain NodeMap.t) : next_codomain NodeMap.t =
   match ss with
   | (src, sink) :: oth -> add_list_edges_mono oth (add_edge_mono src sink edges)
   | _ -> edges
@@ -215,14 +202,14 @@ let translate_miniimp (program : ImpAst.program) :
        (create_cfg empty_node_set empty_edge_map (Label 0) dummy_node_val
           empty_code_map)
        program.command)) in
-    {cfg with edges = NodeMap.add cfg.exit [] cfg.edges}
+    {cfg with edges = NodeMap.add cfg.exit None cfg.edges}
 
 let node_to_string (node : node) : string =
   match node with Label n -> string_of_int n
 
-let rec next_codomain_to_string (src : node) (edges : next_codomain list) :
-    string =
-  let insert_helper (edge : next_codomain) : string =
+let access_node n = match n with Label l -> l
+
+let next_codomain_to_string (src : node) (edge : next_codomain) =
     match edge with
     | Uncond sink ->
         Printf.sprintf "%s -> %s;\n" (node_to_string src) (node_to_string sink)
@@ -231,10 +218,6 @@ let rec next_codomain_to_string (src : node) (edges : next_codomain list) :
           (node_to_string src) (node_to_string sink_true) (node_to_string src)
           (node_to_string sink_false)
     | None -> ""
-  in
-  match edges with
-  | edge :: rest -> next_codomain_to_string src rest ^ insert_helper edge
-  | _ -> ""
 
 (** This function takes a node of a CFG and it maps each instruction to a new value 
 and accumulates using the fold_fun function parameter.
@@ -329,27 +312,27 @@ let coerce_or_fail x =
   match coerce x with Some v -> v | None -> failwith "Coercion failed"
 
 let reserve_opt_variable_register 
-  (map : Minirisc.register StringMap.t) 
+  (map : register StringMap.t) 
   (var : string)
-  (reserved_register : Minirisc.register) : Minirisc.register StringMap.t =
+  (reserved_register : register) : register StringMap.t =
   match StringMap.find_opt var map with
   | Some _ -> map
   | None -> StringMap.add var reserved_register map
 
 let convert_minirisc_bop (register : Minirisc.register) (input : 'a * 'a)
-    (id_ram : int StringMap.t)
+    (id_ram : register StringMap.t)
     (helper_fun :
       Minirisc.register ->
       'a ->
-      int StringMap.t ->
-      Minirisc.scomm list * Minirisc.register * int StringMap.t)
+      register StringMap.t ->
+      Minirisc.scomm list * Minirisc.register * register StringMap.t)
     (ir : int -> Minirisc.register -> Minirisc.register -> Minirisc.scomm list)
     (ri : Minirisc.register -> int -> Minirisc.register -> Minirisc.scomm list)
     (rr :
       Minirisc.register ->
       Minirisc.register ->
       Minirisc.register ->
-      Minirisc.scomm list) : Minirisc.scomm list * Minirisc.register * int StringMap.t =
+      Minirisc.scomm list) : Minirisc.scomm list * Minirisc.register * register StringMap.t =
   match input with
   | x, y when Option.is_some (coerce x) ->
       let t = coerce_or_fail x in
@@ -370,10 +353,10 @@ let convert_minirisc_bop (register : Minirisc.register) (input : 'a * 'a)
         second eval_right, third eval_right)
 
 let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register)
-    (expr : ImpAst.a_exp) (ram : int StringMap.t) :
-    Minirisc.scomm list * Minirisc.register * int StringMap.t =
+    (expr : ImpAst.a_exp) (ram : register StringMap.t) :
+    Minirisc.scomm list * Minirisc.register * register StringMap.t =
   let rec helper_arithemtic (register : Minirisc.register) (expr : coercable)
-      (id_ram : int StringMap.t) : Minirisc.scomm list * Minirisc.register * int StringMap.t =
+      (id_ram : register StringMap.t) : Minirisc.scomm list * Minirisc.register * register StringMap.t =
     match expr with
     | Integer expr -> (
         match expr with
@@ -409,10 +392,10 @@ let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register)
   helper_arithemtic available (Integer expr) ram
 
 let convert_miniimp_boolean_to_minirisc (available : Minirisc.register)
-    (expr : ImpAst.b_exp) (ram : int StringMap.t) :
-    Minirisc.scomm list * Minirisc.register * int StringMap.t =
+    (expr : ImpAst.b_exp) (ram : register StringMap.t) :
+    Minirisc.scomm list * Minirisc.register * register StringMap.t =
   let rec helper_boolean (register : Minirisc.register) (expr : coercable)
-      (id_ram : int StringMap.t) : Minirisc.scomm list * Minirisc.register * int StringMap.t =
+      (id_ram : register StringMap.t) : Minirisc.scomm list * Minirisc.register * register StringMap.t =
     match expr with
     | Boolean expr -> (
         match expr with
@@ -447,12 +430,11 @@ let convert_miniimp_boolean_to_minirisc (available : Minirisc.register)
   in
   helper_boolean available (Boolean expr) ram
 
-(** *)
 let miniimp_cfg_to_minirisc (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
     : Minirisc.scomm control_flow_graph =
   let map_simple_imp_to_simple_risc (stmt : ImpAst.miniimp_simple)
-      (available : Minirisc.register) (string_to_ram : int StringMap.t) :
-      Minirisc.scomm list * Minirisc.register * int StringMap.t =
+      (available : Minirisc.register) (string_to_ram : register StringMap.t) :
+      Minirisc.scomm list * Minirisc.register * register StringMap.t =
     match stmt with
     | ImpAst.Skip -> ([ Minirisc.Nop ], available, string_to_ram)
     | ImpAst.Assignment (str, aexp) ->
@@ -469,7 +451,7 @@ let miniimp_cfg_to_minirisc (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
     | ImpAst.Guard bexp ->
         convert_miniimp_boolean_to_minirisc available bexp string_to_ram
   in
-  let code_translator (available : Minirisc.register) (ram : int StringMap.t) :
+  let code_translator (available : Minirisc.register) (ram : register StringMap.t) :
       Minirisc.scomm list NodeMap.t =
     first
       (NodeMap.fold
@@ -487,4 +469,4 @@ let miniimp_cfg_to_minirisc (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
          imp_cfg.code (NodeMap.empty, available, ram))
   in
   create_cfg imp_cfg.nodes imp_cfg.edges imp_cfg.entry imp_cfg.exit
-    (code_translator 3 (StringMap.add "out" out_register (StringMap.singleton "in" in_register)))
+    (code_translator first_free_register (StringMap.add "out" out_register (StringMap.singleton "in" in_register)))

@@ -9,8 +9,8 @@ let node_to_string (node : Cfg.node) : string =
 in which each node contains the live_in and live_out sets *)
 let live_analysis_dot (cfg : Minirisc.scomm Cfg.control_flow_graph) : string =
   let pretty_print_live_sets (bas : Data_flow_utils.block_analysis_state) : string = 
-    "Live-IN: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int reg) ^ "\\n") bas.in_set "[ " ^ " ]
-    \\n Live-OUT: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int reg) ^ "\\n") bas.out_set "[ " ^ " ]"
+    "Live-IN: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int (Minirisc.get_reg_id reg)) ^ "\\n") bas.in_set "[ " ^ " ]
+    \\n Live-OUT: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int (Minirisc.get_reg_id reg)) ^ "\\n") bas.out_set "[ " ^ " ]"
   in
   let liveness_result = LiveAnalysis.liveness_analysis cfg in
   let nodes_str =
@@ -44,8 +44,8 @@ let live_analysis_dot (cfg : Minirisc.scomm Cfg.control_flow_graph) : string =
 
 let defined_analysis_dot (cfg : Minirisc.scomm Cfg.control_flow_graph) : string =
   let pretty_print_defined_sets (bas : Data_flow_utils.block_analysis_state) : string =
-      "Defined-IN: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int reg) ^ "\\n") bas.in_set "[ " ^ " ]
-      \\n Defined-OUT: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int reg) ^ "\\n") bas.out_set "[ " ^ " ]"
+      "Defined-IN: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int (Minirisc.get_reg_id reg)) ^ "\\n") bas.in_set "[ " ^ " ]
+      \\n Defined-OUT: " ^ Minirisc.RegisterSet.fold (fun reg acc -> acc ^ "R" ^ (string_of_int (Minirisc.get_reg_id reg)) ^ "\\n") bas.out_set "[ " ^ " ]"
   in
   let defined_result = DefinedAnalysis.defined_analysis cfg in
   let nodes_str =

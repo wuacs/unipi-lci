@@ -59,12 +59,12 @@ let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap)
 
 let coalesced_edge_map (cfg : mriscfg) : node list Nodemap.t =
   try
-    Nodemap.add cfg.exit [] (Nodemap.fold (fun node list coalesced ->
+    Nodemap.add cfg.exit [] (Nodemap.fold (fun node next coalesced ->
       Cfg.NodeMap.add
-      node (List.fold_left (fun acc x -> match x with
-      | Cfg.Uncond t -> t::acc
-      | Cfg.Cond(t, t1) -> t :: t1 :: acc
-      | Cfg.None -> acc) [] list) coalesced) cfg.edges Nodemap.empty)
+      node (match next with
+      | Cfg.Uncond t -> [t]
+      | Cfg.Cond(t, t1) -> [t; t1]
+      | Cfg.None -> []) coalesced) cfg.edges Nodemap.empty)
   with e ->
     Printf.eprintf "Error in coalesced_edge_map: %s\n" (Printexc.to_string e);
     raise e

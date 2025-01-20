@@ -1,8 +1,14 @@
-type register = int
+type register = Id of int [@@unboxed]
+type label = Label of int [@@unboxed]
+
+let get_reg_id r = 
+  match r with Id l -> l
+
+let get_label_val l = 
+  match l with Label v -> v 
 
 module RegisterSet = Set.Make (struct
   type t = register
-
   let compare x y = compare x y
 end)
 
@@ -12,7 +18,13 @@ module RegisterMap = Map.Make (struct
   let compare x y = compare x y
 end)
 
-type label = string
+module LabelMap = Map.Make (struct
+  type t = label
+
+  let compare x y = compare (get_label_val x) (get_label_val y)
+end)
+
+
 type mem_ram = int -> int
 type mem_reg = register -> int
 type brop = Add | Sub | Mult | And | Less
@@ -33,9 +45,10 @@ type comm =
   | Jump of label
   | Cjump of register * label * label
 
+
 let minirisc_command_to_string (stmt : comm) : string =
   let register_to_string (reg : register) = 
-    "R" ^ (string_of_int reg) 
+    "R" ^ (string_of_int (get_reg_id reg)) 
   in
   let brop_code_to_string (stmt : brop) : string = 
     match stmt with 
@@ -69,5 +82,5 @@ let minirisc_command_to_string (stmt : comm) : string =
   in
     match stmt with
     | Simple(scomm) -> minirisc_simple_to_string scomm
-    | Jump(label) -> Printf.sprintf "jump l%s" label
-    | Cjump(reg, l1, l2) -> Printf.sprintf "cjump r%d l%s l%s" reg l1 l2
+    | Jump(label) -> Printf.sprintf "jump l%d" (get_label_val label)
+    | Cjump(reg, l1, l2) -> Printf.sprintf "cjump r%d l%d l%d" (get_reg_id reg) (get_label_val l1) (get_label_val l2)

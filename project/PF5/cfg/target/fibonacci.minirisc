@@ -1,0 +1,37 @@
+L 0	CopyR0 => R3
+LoadI 0 => R0
+CopyR0 => R4
+CopyR3 => R1
+LoadI 2 => R0
+LessR1 => R0 => R0
+NotR0 => R0
+cjump r0 l1 l5
+L 1	CopyR3 => R0
+SubIR0 => 1 => R0
+CopyR0 => R3
+LoadI 1 => R0
+CopyR0 => R4
+LoadI 0 => R0
+CopyR0 => R2
+jump l2
+L 2	CopyR3 => R1
+LoadI 2 => R0
+LessR1 => R0 => R0
+NotR0 => R0
+cjump r0 l3 l4
+L 3	CopyR4 => R0
+CopyR4 => R1
+AddR1 => R2 => R1
+CopyR1 => R4
+CopyR3 => R1
+SubIR1 => 1 => R1
+CopyR1 => R3
+CopyR0 => R2
+jump l2
+L 4	Nop
+jump l6
+L 6	Nop
+L 5	jump l1000
+LoadI 2 => R0
+CopyR0 => R4
+jump l6

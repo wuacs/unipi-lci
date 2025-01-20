@@ -1,4 +1,4 @@
-type node = Label of int
+type node = Label of int [@@unboxed]
 
 module NodeSet : Set.S with type elt = node
 module NodeMap : Map.S with type key = node
@@ -14,7 +14,7 @@ type next_codomain = Uncond of node | Cond of (node * node) | None
 
 type 'a control_flow_graph = {
   nodes : NodeSet.t;
-  edges : next_codomain list NodeMap.t;
+  edges : next_codomain NodeMap.t;
   entry : node;
   exit : node;
   code : 'a list NodeMap.t;
@@ -60,4 +60,7 @@ val compute_reversed_map : 'a control_flow_graph -> node list NodeMap.t
 
 (** Given a node and its outgoing edges this function returns a string
 representing the node and its outgoing edges in Dot format. *)
-val next_codomain_to_string : node -> next_codomain list -> string
+val next_codomain_to_string : node -> next_codomain -> string
+
+(** Given a node, unwraps its label *)
+val access_node: node -> int

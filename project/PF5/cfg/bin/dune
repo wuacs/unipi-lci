@@ -6,6 +6,12 @@
 
 (executable
  (package cfg)
+ (public_name target)
+ (name target)
+ (libraries target_code))
+
+(executable
+ (package cfg)
  (public_name cfg)
  (name main)
  (libraries cfg data_flow_analysis))

@@ -2,6 +2,8 @@ exception NotEnoughRegisters of string
 exception IllFormedCfg of string
 
 open Printf
+open Minirisc
+open Cfg
 
 module Nodemap = Cfg.NodeMap
 module Nodeset = Cfg.NodeSet
@@ -15,7 +17,13 @@ type reg = Minirisc.register
 
 type vertex = {id: reg; degree: int; cost: int; color: int}
 
-let uncolored = 10000
+let third (_, _, t) = t
+let first (f, _, _) = f
+let second (_, s, _) = s
+
+(** Such register ID is assigned to registers
+which need to be spilled. *)
+let uncolored_register = Id 10000
 
 module VertexStack = (struct
   type t = vertex Stack.t
@@ -24,6 +32,7 @@ module VertexStack = (struct
   let pop = Stack.pop
   let is_empty = Stack.is_empty
 end)
+
 
 (** A set of Vertexes which ordering is based upon their degree, and
 if they are equal on that value, upon their degree. *)
@@ -71,15 +80,15 @@ end)
 
 
 let print_vertexsetbydegree set = 
-  VertexSetByDegree.iter (fun x -> printf "vertex %d has degree %d\n" x.id x.degree) set;
+  VertexSetByDegree.iter (fun x -> printf "vertex %d has degree %d\n" (get_reg_id x.id) x.degree) set;
   print_string ("Number of registers in degree set: " ^ (string_of_int (VertexSetByDegree.cardinal set)))
 
 let print_vertexsetbymetric set = 
-  VertexSetBySpillMetric.iter (fun x -> printf "vertex %d has metric value %d\n" x.id x.cost) set;
+  VertexSetBySpillMetric.iter (fun x -> printf "vertex %d has metric value %d\n" (get_reg_id x.id) x.cost) set;
   print_string ("Number of registers in metric set: " ^ (string_of_int (VertexSetBySpillMetric.cardinal set)))
 
 let print_vertexsetbycolor set = 
-  VertexSetByColor.iter (fun x -> printf "vertex %d has color %d\n" x.id x.color) set;
+  VertexSetByColor.iter (fun x -> printf "vertex %d has color %d\n" (get_reg_id x.id) x.color) set;
   print_string ("Number of registers in color set: " ^ (string_of_int (VertexSetByColor.cardinal set)))
 
 (** The cost of a register is the amount of read operations done on it *)
@@ -92,7 +101,10 @@ let compute_cost_register (cfg : mriscfg) (reg: reg): int =
           | Some _ -> 1
           | _ -> 0)) 0 codeblk)) cfg.code 0
 
-
+(** Removes a vertex from a vertex set ordered by degree. Such set is used
+for determining the current state of interference, i.e. the interference graph
+passed as input tells us the interference, the vertex set keeps track for each node
+of the remaining nodes in the interference graph. *)
 let remove_vertex (interference_graph: RegSet.t RegMap.t) (gi: VertexSetByDegree.t)
   (regId: reg) = 
     VertexSetByDegree.filter_map (fun v -> 
@@ -103,34 +115,30 @@ let remove_vertex (interference_graph: RegSet.t RegMap.t) (gi: VertexSetByDegree
     | Some _ -> if v.degree > 0 then Some({v with degree = v.degree - 1}) else None
     | None -> Some v) gi
 
-(** Computes the live ranges of *)
+(** Computes the live ranges of the registers present
+in the control flow graph in input. The registers in the graph are
+retrieved using {! Data_flow_analysis.Utils.get_top} *)
 let compute_live_ranges (cfg: mriscfg) =
   let mapState = Data_flow_analysis.liveness_analysis cfg in
   let graph = RegSet.fold (fun reg liveRangeSet ->
     RegMap.add reg RegSet.empty liveRangeSet
   ) (Data_flow_analysis.Utils.get_top cfg) RegMap.empty 
   in
-  let add_edge_to_graph from_node to_node graph nodeId =
-    if to_node = from_node then
+  let add_edge_to_graph from_register to_register graph nodeId =
+    if to_register = from_register then
       graph
     else
       begin
-      match nodeId with
-      | Cfg.Label c -> printf "in node %d adding edge from reg %d to reg %d\n" c from_node to_node;
-      RegMap.update from_node
+      printf "in node %d adding edge from reg %d to reg %d\n" 
+      (access_node nodeId) (get_reg_id from_register) (get_reg_id to_register);
+      RegMap.update from_register
       (fun edges -> match edges with
-      | Some set -> Some (RegSet.add to_node set)
-      | None -> Some (RegSet.singleton to_node)) graph
+      | Some set -> Some (RegSet.add to_register set)
+      | None -> Some (RegSet.singleton to_register)) graph
     end
   in
-  (* 
-  let print_out_set set nodeId =
-    match nodeId with
-    | Cfg.Label c -> RegSet.iter (fun x -> printf "in node %d live out is %d\n" c x) set;
-  in*)
   Nodeset.fold (fun nodeId liveRangeSet ->
     let live_now = (Nodemap.find nodeId mapState).out_set in
-    (* print_out_set live_now nodeId; *)
     let res = List.fold_right (fun instruction (live_now, graph) ->
       let written = Data_flow_analysis.Utils.extract_written_register instruction in
       match written with
@@ -143,36 +151,24 @@ let compute_live_ranges (cfg: mriscfg) =
   ) cfg.nodes graph
 
 (** Given a miniRISC instruction it replaces each reference to 
-{! register_replaced} with {! register_replacing} *)
+register {b x} in the instruction passed as first argument with its mapping according to
+the second argument. *)
 let replace_register
   (instruction : riscomm)
-  (register_replaced : reg)
-  (register_replacing : reg) =
+  (mapping : reg -> reg) =
   match instruction with
   | Minirisc.Rtor (op, reg1, reg2, reg3) ->
-      let reg1' = if reg1 = register_replaced then register_replacing else reg1 in
-      let reg2' = if reg2 = register_replaced then register_replacing else reg2 in
-      let reg3' = if reg3 = register_replaced then register_replacing else reg3 in
-      Minirisc.Rtor (op, reg1', reg2', reg3')
+      Minirisc.Rtor (op, mapping reg1, mapping reg2, mapping reg3)
   | Minirisc.Rtoi (op, reg1, imm, reg2) ->
-      let reg1' = if reg1 = register_replaced then register_replacing else reg1 in
-      let reg2' = if reg2 = register_replaced then register_replacing else reg2 in
-      Minirisc.Rtoi (op, reg1', imm, reg2')
+      Minirisc.Rtoi (op, mapping reg1, imm, mapping reg2)
   | Minirisc.Rury (op, reg1, reg2) ->
-      let reg1' = if reg1 = register_replaced then register_replacing else reg1 in
-      let reg2' = if reg2 = register_replaced then register_replacing else reg2 in
-      Minirisc.Rury (op, reg1', reg2')
+      Minirisc.Rury (op, mapping reg1, mapping reg2)
   | Minirisc.Load (reg1, reg2) ->
-      let reg1' = if reg1 = register_replaced then register_replacing else reg1 in
-      let reg2' = if reg2 = register_replaced then register_replacing else reg2 in
-      Minirisc.Load (reg1', reg2')
+      Minirisc.Load (mapping reg1, mapping reg2)
   | Minirisc.LoadI (imm, reg1) ->
-      let reg1' = if reg1 = register_replaced then register_replacing else reg1 in
-      Minirisc.LoadI (imm, reg1')
+      Minirisc.LoadI (imm, mapping reg1)
   | Minirisc.Store (reg1, reg2) ->
-      let reg1' = if reg1 = register_replaced then register_replacing else reg1 in
-      let reg2' = if reg2 = register_replaced then register_replacing else reg2 in
-      Minirisc.Store (reg1', reg2')
+      Minirisc.Store (mapping reg1, mapping reg2)
   | Minirisc.Nop -> Minirisc.Nop
 
 let rec chaitin_briggs_step1 
@@ -188,7 +184,6 @@ let rec chaitin_briggs_step1
     let lowest = VertexSetByDegree.min_elt_opt gi in
     match lowest with
     | Some v -> 
-      printf "removed register %d which has degree %d num registers left %d \n" v.id v.degree (VertexSetByDegree.cardinal gi); 
       if (v.degree < k) then
         let () = VertexStack.push v stack in
         (chaitin_briggs_step1 interference_graph (RegSet.remove v.id registers_left) (remove_vertex interference_graph gi v.id) gh stack k current_coloring spilled_registers)
@@ -245,13 +240,12 @@ and chaitin_briggs_step3
                   | false -> (acc, b))
       | true -> (acc, b)) current_coloring (0, false)) in
     if color < k then
-    begin
-      printf "Coloring register %d with color %d\n" v.id color;
       chaitin_briggs_step3 interference_graph registers_left gi gh stack k (VertexSetByColor.add {v with color = color } (VertexSetByColor.remove v current_coloring)) spilled_registers
-    end
     else
-        let () = printf "Spilling register %d\n" v.id in
-        chaitin_briggs_step1 interference_graph (RegSet.remove v.id registers_left) gi gh stack k (VertexSetByColor.add {v with color = -v.id } (VertexSetByColor.remove v current_coloring)) (RegSet.add (-v.id) spilled_registers))
+      let spilled_id = (- get_reg_id v.id) in 
+      chaitin_briggs_step1 interference_graph (RegSet.remove v.id registers_left)
+      gi gh stack k (VertexSetByColor.add {v with color = spilled_id }
+      (VertexSetByColor.remove v current_coloring)) (RegSet.add (Id spilled_id) spilled_registers))
 
 
 (** Given a CFG in input, each register that is included in the 
@@ -286,7 +280,7 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegSet.t) (regis
   match (Nodemap.find_opt blk cfg.code) with
   | Some blk_code -> 
       let reversed_instructions = List.rev blk_code in
-      let available_registers = RegSet.diff (RegSet.remove register (RegSet.add_seq (Seq.init register_number (fun x -> x)) RegSet.empty)) (Nodemap.find blk liveness_result).out_set in
+      let available_registers = RegSet.diff (RegSet.remove register (RegSet.add_seq (Seq.init register_number (fun x -> Id x)) RegSet.empty)) (Nodemap.find blk liveness_result).out_set in
       let _ = match blk with Label t -> (printf "num of available registers %d in block %d\n" (RegSet.cardinal available_registers) t) in
       fst (List.fold_left (fun (new_list, available_registers) instruction -> 
         let read = Data_flow_analysis.Utils.extract_read_registers instruction in 
@@ -298,7 +292,7 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegSet.t) (regis
             | Some r -> 
               ([Minirisc.LoadI(memory_location, r); 
                 Minirisc.Load(r, r); 
-                replace_register instruction register r] @ new_list, Some r)
+                replace_register instruction (fun x -> if x = register then r else x)] @ new_list, Some r)
             | None -> raise (NotEnoughRegisters "There are not enough registers to read spilled register")
             end
           else
@@ -327,7 +321,7 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegSet.t) (regis
                     | Some r -> r
                     | None -> raise (NotEnoughRegisters "Not enough registers for writing address for storing")
                   in
-                  ( [replace_register instruction register write_in_register; 
+                  ( [replace_register instruction (fun x -> if x = register then write_in_register else x); 
                     Minirisc.LoadI(memory_location, address_register);
                     Minirisc.Store(write_in_register, address_register)] @ prefix_list, 
                    available_registers)
@@ -357,30 +351,14 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegSet.t) (regis
 *)
 let apply_color_map_to_cfg
   (cfg : mriscfg)
-  (color_map : int RegMap.t) : mriscfg = 
+  (color_map : reg RegMap.t) : mriscfg = 
   let replace_register_with_map reg =
     match RegMap.find_opt reg color_map with
     | Some new_reg -> new_reg
-    | None -> uncolored  (* If no mapping is found, then it is considered spilled *)
-  in
-  let replace_instruction instruction =
-    match instruction with
-    | Minirisc.Rtor (op, reg1, reg2, reg3) ->
-        Minirisc.Rtor (op, replace_register_with_map reg1, replace_register_with_map reg2, replace_register_with_map reg3)
-    | Minirisc.Rtoi (op, reg1, imm, reg2) ->
-        Minirisc.Rtoi (op, replace_register_with_map reg1, imm, replace_register_with_map reg2)
-    | Minirisc.Rury (op, reg1, reg2) ->
-        Minirisc.Rury (op, replace_register_with_map reg1, replace_register_with_map reg2)
-    | Minirisc.Load (reg1, reg2) ->
-        Minirisc.Load (replace_register_with_map reg1, replace_register_with_map reg2)
-    | Minirisc.LoadI (imm, reg1) ->
-        Minirisc.LoadI (imm, replace_register_with_map reg1)
-    | Minirisc.Store (reg1, reg2) ->
-        Minirisc.Store (replace_register_with_map reg1, replace_register_with_map reg2)
-    | Minirisc.Nop -> Minirisc.Nop
+    | None -> uncolored_register  (* If no mapping is found, then it is considered spilled *)
   in
   let replace_block blk_code =
-    List.map replace_instruction blk_code
+    List.map (Fun.flip replace_register (fun x -> replace_register_with_map x)) blk_code
   in
   let new_code = Nodemap.fold (fun blk blk_code acc ->
     Nodemap.add blk (replace_block blk_code) acc
@@ -393,15 +371,14 @@ Spilled registers are given as the fourth element in the result. *)
 let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : mriscfg = 
     let g = compute_live_ranges cfg in
     let (vertexesByDegree, vertexesByMetric, vertexesByColor) = RegMap.fold (fun reg neighbors (setByDegree, setByMetric, setByColor) -> 
-      let vertex = {id = reg; degree = (RegSet.cardinal neighbors); cost = (compute_cost_register cfg reg); color = uncolored} in
-      printf "Register %d has cost %d\n" reg vertex.cost; 
+      let vertex = {id = reg; degree = (RegSet.cardinal neighbors); cost = (compute_cost_register cfg reg); color = (get_reg_id uncolored_register)} in
       (VertexSetByDegree.add vertex setByDegree, VertexSetBySpillMetric.add vertex setByMetric, VertexSetByColor.add vertex setByColor))
     g (VertexSetByDegree.empty, VertexSetBySpillMetric.empty, VertexSetByColor.empty) in
     print_vertexsetbycolor vertexesByColor;
     print_vertexsetbydegree vertexesByDegree;
     print_vertexsetbymetric vertexesByMetric;
     let (colors, spilled) = chaitin_briggs_step1 g (Data_flow_analysis.Utils.get_top cfg) vertexesByDegree vertexesByMetric (VertexStack.create ()) k vertexesByColor RegSet.empty in
-    let color_map = VertexSetByColor.fold (fun v map -> RegMap.add v.id v.color map) colors RegMap.empty in
+    let color_map = VertexSetByColor.fold (fun v map -> RegMap.add v.id (Id v.color) map) colors RegMap.empty in
     let merged_cfg = apply_color_map_to_cfg cfg color_map in
     printf "Spilling size %d " (RegSet.cardinal spilled) ;
     {merged_cfg with code = apply_spilling_to_cfg merged_cfg spilled k}
@@ -409,13 +386,13 @@ let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : mriscfg =
 let get_live_ranges_dot_format (cfg : mriscfg) : string = 
   let g = compute_live_ranges cfg in
   let other_registers start set =
-    RegSet.fold (fun x acc -> acc ^ (Printf.sprintf "%d -> %d\n" start x)) set "" 
+    RegSet.fold (fun x acc -> acc ^ (Printf.sprintf "%d -> %d\n" (get_reg_id start) (get_reg_id x))) set "" 
   in
   let nodes_str =
     RegSet.fold
       (fun reg acc ->
         acc
-        ^ Printf.sprintf "  %d [label=\"%d\"];\n" reg reg)
+        ^ Printf.sprintf "  %d [label=\"%d\"];\n" (get_reg_id reg) (get_reg_id reg))
       (Data_flow_analysis.Utils.get_top cfg) ""
   in
 
@@ -426,8 +403,8 @@ let get_live_ranges_dot_format (cfg : mriscfg) : string =
         g ""
   in
 
-  let entry_str = "0" in
-  let exit_str = "1" in
+  let entry_str = (string_of_int (get_reg_id Cfg.in_register)) in
+  let exit_str = (string_of_int (get_reg_id Cfg.out_register)) in
 
   (* Return the full graph's DOT string *)
   Printf.sprintf
@@ -439,13 +416,84 @@ let get_live_ranges_dot_format (cfg : mriscfg) : string =
     %s%s}\n"
     entry_str exit_str nodes_str edges_str
 
-(**
-let generate_target_code (cfg : mriscfg) : string =
-  let rec rec_helper (already_labelled : Nodeset.t) (node : node) : string =
-    if (Nodeset.mem node already_labelled) then 
-      ""
+let generate_target_code (cfg : mriscfg) (k : int): (Minirisc.comm list * int Minirisc.LabelMap.t)  =
+  let remove_garbage (scomm : Minirisc.scomm) : Minirisc.scomm option = 
+    match scomm with
+    | Minirisc.Rury(op, r1, r2) -> 
+      begin
+      match op with
+      | Minirisc.Copy -> if ((get_reg_id r1) = (get_reg_id r2)) then None else Some(scomm)
+      | _ -> Some (scomm)
+      end
+    | Minirisc.Rtoi(op, r1, i, r2) ->
+      begin
+      match op with
+      | Minirisc.AddI | Minirisc.SubI -> if (i = 0 && (get_reg_id r1) = (get_reg_id r2)) then None else Some(scomm) 
+      | _ -> Some (scomm)
+      end
+    | _ -> Some(scomm)
+  in
+  let rec rec_helper 
+  (cfg: mriscfg)
+  (mapping : int Minirisc.LabelMap.t) 
+  (node : node) 
+  (curr_pos : int) : 
+  (Minirisc.comm list * int Minirisc.LabelMap.t * int) =
+    match node with
+    | Label l -> 
+      begin
+        if (Minirisc.LabelMap.mem (Minirisc.Label l) mapping) then 
+          ([], Minirisc.LabelMap.empty, curr_pos - 1)
+        else
+          begin
+            let blk_reversed = List.rev (Nodemap.find node cfg.code) in (* reversing for efficiency *)
+            (* removing garbage instructions and promoting simple instructions to instructions *)
+            let blk_mapped_reversed = (List.filter_map (fun x -> match (remove_garbage x) with
+            | Some i -> Some(Minirisc.Simple(i))
+            | None -> None) blk_reversed)
+            in
+            let blk_len = List.length blk_mapped_reversed in (* number of instructions in the filtered block *)
+            Printf.printf "Current pos in node %d is %d blk filtered len is %d block unfiltered %d \n" (access_node node) curr_pos blk_len (List.length blk_reversed);
+            (* flag the current block with a label, corresponding to its node identifier*)
+            let mapping = LabelMap.add (Minirisc.Label l) curr_pos mapping in 
+            match (Nodemap.find node cfg.edges) with
+            | Uncond x -> 
+              begin
+                let xblock = rec_helper cfg mapping x (curr_pos + blk_len + 1) in (* make the block start after the current one *)
+                ((first xblock) @ (Minirisc.Jump (Label (access_node x))) :: blk_mapped_reversed, 
+                LabelMap.union (fun _ k1 k2 -> if (k1 <> k2) then failwith "The same has been labeled twice" else Some(k1)) 
+                mapping (second xblock),
+                third xblock)
+              end
+            | Cond(x1, x2) -> 
+              begin
+                let x1block = rec_helper cfg mapping x1 (curr_pos + blk_len + 1) in
+                let x2block = rec_helper cfg ( LabelMap.union (fun _ k1 k2 -> if (k1 <> k2) then failwith "The same has been labeled twice" else Some(k1)) 
+                mapping (second x1block)) x2 (third x1block + 1) in
+                match Data_flow_analysis.Utils.extract_written_register (List.hd blk_reversed) with
+                | None -> failwith "Ill-formed Control Flow Graph, the last instruction before a fork should be a write instruction" 
+                | Some wr -> ((first x2block) @ (first x1block) @ (Minirisc.Cjump(wr, Label (access_node x1), Label (access_node x2))) :: blk_mapped_reversed, (second x2block), (third x2block))
+              end
+            | None -> (Jump(Label 1000)::blk_mapped_reversed, LabelMap.add (Label l) curr_pos mapping, curr_pos)
+          end
+      end
+      in
+      let res = rec_helper (chaitin_briggs_algorithm cfg k) (Minirisc.LabelMap.empty) (cfg.entry) 0
+      in
+      ((List.rev (first res)), second res)
+
+let generate_target_code_string cfg k = 
+  let target_code_output = generate_target_code cfg k in
+  let labels = (Array.of_list (LabelMap.bindings (snd target_code_output))) in
+  Array.sort (fun pos1 pos2 -> compare (snd pos1) (snd pos2)) labels;
+  Array.iter (fun x -> (Printf.printf "is %d\n" (snd x))) labels;
+  first (List.fold_left (fun (str, curr_pos, curr_label) instruction -> 
+    let to_append = (minirisc_command_to_string instruction) ^ "\n" in
+    let label = Array.get labels curr_label in 
+    Printf.printf "Curr instruction is %d curr label is at position: %d\n" curr_pos (snd label);
+    if curr_pos = (snd label) then 
+      begin
+      (str ^ (Printf.sprintf "L %d\t" (get_label_val (fst label))) ^ to_append, curr_pos+1, ((curr_label + 1) mod (Array.length labels)))
+      end
     else
-      match node with
-      | Label l -> (Printf.sprintf "Label %d" l)
-    in 
-    "xu"*)
+      ((str ^ to_append), curr_pos+1, curr_label)) ("", 0, 0) (fst target_code_output))

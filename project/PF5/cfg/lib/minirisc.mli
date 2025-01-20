@@ -1,9 +1,6 @@
-type register = int
+type register = Id of int [@@unboxed]
+type label = Label of int [@@unboxed]
 
-module RegisterSet : Set.S with type elt = register
-module RegisterMap : Map.S with type key = register
-
-type label = string
 type mem_ram = int -> int
 type mem_reg = register -> int
 type brop = Add | Sub | Mult | And | Less
@@ -23,5 +20,13 @@ type comm =
   | Simple of scomm
   | Jump of label
   | Cjump of register * label * label
+
+module RegisterSet : Set.S with type elt = register
+module RegisterMap : Map.S with type key = register
+module LabelMap : Map.S with type key = label
+
+val get_reg_id : register -> int 
+
+val get_label_val : label -> int
 
 val minirisc_command_to_string : comm -> string
