@@ -7,7 +7,6 @@ end)
 
 module NodeMap = Map.Make (struct
   type t = node
-
   let compare x y = compare x y
 end)
 
@@ -15,7 +14,6 @@ module ImpAst = Miniimp.ImpAst
 module StringMap = Map.Make (String)
 
 type next_codomain = Uncond of node | Cond of (node * node) | None
-type 'a language = 'a
 
 type 'a control_flow_graph = {
   nodes : NodeSet.t;
@@ -27,15 +25,19 @@ type 'a control_flow_graph = {
 
 type coercable = Boolean of ImpAst.b_exp | Integer of ImpAst.a_exp
 
-let in_register : Minirisc.register = 0
-let out_register : Minirisc.register = 1
-let guard_register : Minirisc.register = 2
-
+let in_register= 0
+let out_register = 1
+let empty_node_set = NodeSet.empty
+let empty_edge_map = NodeMap.empty
+let empty_code_map = NodeMap.empty
+let dummy_node_val = Label (-1)
 let third (_, _, t) = t
 let first (f, _, _) = f
 let second (_, s, _) = s
 
-(* Function to compute the reversed map *)
+(** Taken a control flow graph, it returns a mapping from nodes to 
+list of nodes. This mapping does not preserve the control flow information
+of the graph, as conditional jumps are flattened in the list in output. *)
 let compute_reversed_map (cfg : 'a control_flow_graph) : node list NodeMap.t =
   NodeMap.fold
     (fun src_node edge_list reversed_map ->
@@ -59,23 +61,22 @@ let compute_reversed_map (cfg : 'a control_flow_graph) : node list NodeMap.t =
         reversed_map edge_list)
     cfg.edges NodeMap.empty
 
-let push_instruction (node : node) (command : ImpAst.miniimp_simple)
-    (blk_map : ImpAst.miniimp_simple List.t NodeMap.t) :
-    ImpAst.miniimp_simple List.t NodeMap.t =
+(** Pushes an instruction to the front of a particular node.*)
+let push_instruction node command blk_map =
   NodeMap.update node
     (fun x ->
       match x with
-      | Some y -> Some (List.cons command y)
+      | Some y -> Some (command :: y)
       | None -> Some [ command ])
     blk_map
 
+(** Labels of nodes are assigned incrementally *)
 let get_next_uid_node : node -> node =
  fun x -> match x with Label v -> Label (v + 1)
 
-let empty_node_set : NodeSet.t = NodeSet.empty
-let empty_edge_map : next_codomain list NodeMap.t = NodeMap.empty
-let empty_code_map : 'a List.t NodeMap.t = NodeMap.empty
-let dummy_node_val : node = Label (-1)
+ (** Registers are assigned incrementally *)
+let get_new_register (register : Minirisc.register) : Minirisc.register =
+  register + 1
 
 let add_edge_mono (source : node) (sink : node)
     (edges : next_codomain list NodeMap.t) : next_codomain list NodeMap.t =
@@ -127,7 +128,7 @@ let translate_miniimp (program : ImpAst.program) :
     match command with
     | Assign (x, y) ->
         create_cfg cfg.nodes cfg.edges cfg.entry cfg.entry
-          (push_instruction cfg.entry (Assignment (x, y)) cfg.code)
+          (push_instruction cfg.entry (ImpAst.Assignment (x, y)) cfg.code)
     | Sequence (c1, c2) ->
         let cfg_c1 =
           translate_command
@@ -324,23 +325,8 @@ let coerce (x : coercable) : int option =
       match b with Bval false -> Some 0 | Bval true -> Some 1 | _ -> None)
   | Integer aritm -> ( match aritm with Aval i -> Some i | _ -> None)
 
-let get_new_register (register : Minirisc.register) : Minirisc.register =
-  register + 1
-
 let coerce_or_fail x =
   match coerce x with Some v -> v | None -> failwith "Coercion failed"
-
-(** Searches in the given map the address of the variable in input.
-If the map does not contain such mapping, it is created and assigned with the 
-highest address present in the map + 1 *)
-(**let create_opt_variable_address (map : int StringMap.t) (var : string) : int StringMap.t= 
-  match StringMap.find_opt var map with
-  | Some _ -> map
-  | None -> let newVal = match (StringMap.max_binding_opt map) with
-            | Some (_, value) -> value+1
-            | None -> 1
-            in
-            StringMap.add var newVal map*)
 
 let reserve_opt_variable_register 
   (map : Minirisc.register StringMap.t) 
@@ -461,6 +447,7 @@ let convert_miniimp_boolean_to_minirisc (available : Minirisc.register)
   in
   helper_boolean available (Boolean expr) ram
 
+(** *)
 let miniimp_cfg_to_minirisc (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
     : Minirisc.scomm control_flow_graph =
   let map_simple_imp_to_simple_risc (stmt : ImpAst.miniimp_simple)

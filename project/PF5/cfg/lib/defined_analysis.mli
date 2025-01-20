@@ -1,6 +1,6 @@
 type block_analysis_state = Data_flow_utils.block_analysis_state
 
-(** Returns a {Data_flow_utils.block_analysis_state} where for any node {!x} its
+(** Returns a {!Data_flow_utils.block_analysis_state} where for any node {!x} its
 {!in_set} represents the defined variables at its start and {!out_set}
 represents the defined variables after the node execution *)
 val defined_analysis : Minirisc.scomm Cfg.control_flow_graph -> Data_flow_utils.block_analysis_state Cfg.NodeMap.t

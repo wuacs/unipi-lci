@@ -439,10 +439,13 @@ let get_live_ranges_dot_format (cfg : mriscfg) : string =
     %s%s}\n"
     entry_str exit_str nodes_str edges_str
 
+(**
 let generate_target_code (cfg : mriscfg) : string =
   let rec rec_helper (already_labelled : Nodeset.t) (node : node) : string =
     if (Nodeset.mem node already_labelled) then 
       ""
     else
       match node with
-      | Label l -> (Printf.sprintf "Label %d" l) ^
+      | Label l -> (Printf.sprintf "Label %d" l)
+    in 
+    "xu"*)
