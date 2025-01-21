@@ -318,7 +318,6 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
                        available_registers)
                   | None -> raise (NotEnoughRegisters "Not enough registers to write spilled register"))
               | None -> 
-                  if ((get_reg_id register) = -3) then Printf.printf "size is %d\n" ((List.length reversed_instructions));
                   let write_in_register = 
                     match RegisterSet.choose_opt available_registers with
                     | Some r -> r
@@ -408,7 +407,7 @@ let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : (mriscfg * memory_loc *
     in
     (spilled_cfg, input_location, output_location)
 
-let get_live_ranges_dot_format (cfg : mriscfg) : string = 
+let interference_graph_dot (cfg : mriscfg) : string = 
   let g = compute_live_ranges cfg in
   let other_registers start set =
     RegisterSet.fold (fun x acc -> acc ^ (Printf.sprintf "%d -> %d\n" (get_reg_id start) (get_reg_id x))) set "" 
@@ -560,7 +559,6 @@ let eval cfg k input =
   in
   (* Helper function to update a value in memory *)
   let update_memory memory address value =
-    Printf.printf "If there was not created mapping for %d\n" (get_memory_address address);
     MemoryMap.add address value memory
   in
 
@@ -645,6 +643,6 @@ let eval cfg k input =
   let (memory, registers) = run 0 MemoryMap.empty RegisterMap.empty
   in
   match out_location with
-  | Register r -> Printf.printf "Mem loc %d" (get_reg_id r); RegisterMap.find r registers
-  | Memory a -> Printf.printf "Mem loc %d" (get_memory_address a); MemoryMap.find a memory
+  | Register r -> RegisterMap.find r registers
+  | Memory a -> MemoryMap.find a memory
       

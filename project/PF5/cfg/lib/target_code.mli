@@ -6,7 +6,10 @@ val exit_label : Minirisc.label
 
 val chaitin_briggs_algorithm: mriscfg -> int -> (mriscfg * Minirisc.memory_loc * Minirisc.memory_loc)
 
-val get_live_ranges_dot_format: mriscfg -> string
+(**
+Given a MiniRISC's Control Flow Graph it returns a string in the DOT language
+which represents the interfernce graph of the registers defined in the graph. *)
+val interference_graph_dot: mriscfg -> string
 
 (** 
 Generates the target code for the given MiniRISC Control Flow Graph using at most {b k} registers.

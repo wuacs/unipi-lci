@@ -6,11 +6,6 @@
  (modules miniimp_parser)
  (explain true))
 
-; Miniimp's language -> miniimp_ast
-; Miniimp's lexer -> miniimp_lexer
-; Miniimp's parser -> miniimp_parser
-; Miniimp exposed API -> miniimp
-
 (library
  (name miniimp)
  (public_name miniimp)
