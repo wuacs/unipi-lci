@@ -1,11 +1,16 @@
 type register = Id of int [@@unboxed]
 type label = Label of int [@@unboxed]
+type memory_address = Address of int [@@unboxed]
+type memory_loc = Register of register | Memory of memory_address
 
 let get_reg_id r = 
   match r with Id l -> l
 
 let get_label_val l = 
   match l with Label v -> v 
+
+let get_memory_address m = 
+  match m with Address v -> v
 
 module RegisterSet = Set.Make (struct
   type t = register
@@ -14,16 +19,18 @@ end)
 
 module RegisterMap = Map.Make (struct
   type t = register
-
   let compare x y = compare x y
 end)
 
 module LabelMap = Map.Make (struct
   type t = label
-
   let compare x y = compare (get_label_val x) (get_label_val y)
 end)
 
+module MemoryMap = Map.Make (struct
+  type t = memory_address
+  let compare x y = compare (get_memory_address x) (get_memory_address y)
+end)
 
 type mem_ram = int -> int
 type mem_reg = register -> int

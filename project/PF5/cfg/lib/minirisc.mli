@@ -1,5 +1,7 @@
 type register = Id of int [@@unboxed]
 type label = Label of int [@@unboxed]
+type memory_address = Address of int [@@unboxed]
+type memory_loc = Register of register | Memory of memory_address
 
 type mem_ram = int -> int
 type mem_reg = register -> int
@@ -24,9 +26,12 @@ type comm =
 module RegisterSet : Set.S with type elt = register
 module RegisterMap : Map.S with type key = register
 module LabelMap : Map.S with type key = label
+module MemoryMap : Map.S with type key = memory_address
 
 val get_reg_id : register -> int 
 
 val get_label_val : label -> int
+
+val get_memory_address : memory_address -> int
 
 val minirisc_command_to_string : comm -> string

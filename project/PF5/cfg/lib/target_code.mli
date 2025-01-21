@@ -1,19 +1,38 @@
 type mriscfg = Minirisc.scomm Cfg.control_flow_graph
 
-val chaitin_briggs_algorithm: mriscfg -> int -> mriscfg
+(** The label assigned to the exiting label, i.e. miniRISC will assume, 
+once arrived at this label, the program has ended *)
+val exit_label : Minirisc.label
+
+val chaitin_briggs_algorithm: mriscfg -> int -> (mriscfg * Minirisc.memory_loc * Minirisc.memory_loc)
 
 val get_live_ranges_dot_format: mriscfg -> string
 
-(** This function takes a {! mriscfg} and the number of registers
-available in the target architecture, and returns a tuple consisting of 
+(** 
+Generates the target code for the given MiniRISC Control Flow Graph using at most {b k} registers.
 
-+ A list of Minirisc's commands, where the first position in the list represents the starting point for 
-the execution of the program. 
-+ A mapping from {! Minirisc.label}s to integers, which are in reality only naturals,
-representing the starting instruction position of the label in the list.
+Note:
+- We return memory locations for the input and output variables because this function 
+does arbitrary optimization on the control flow graph instructions, in particular the Chaitin-Briggs
+coloring algorithm is used to merge non-conflicting registers.
+
+It returns a tuple of 4 elements which are, in order:
+
++ The list of MiniRISC instructions, on which head we have the first instruction to execute
++ A {!LabelMap} to integers mapping any given label to the instruction that label is applied to.
++ A {!memory_loc} representing the memory location of the input variable
++ A {!memory_loc} representing the memory location the output variable
 *)
-val generate_target_code: mriscfg -> int -> (Minirisc.comm List.t * int Minirisc.LabelMap.t)
+val translate_cfg_to_target: mriscfg -> int -> (Minirisc.comm List.t * int Minirisc.LabelMap.t * Minirisc.memory_loc * Minirisc.memory_loc)
 
 (** Utility function which translates a mriscfg into a parsable string of MiniRISC code
 which uses only the limited number of registers given as second argument *)
 val generate_target_code_string: mriscfg -> int -> string
+
+(** Taken a MiniRISC's CFG, a given number of registers (>= 4) and an integer value for the input
+variable this function may
++ return the value of the "out" variable if the CFG was generated properly, see the {! Cfg} library
++ loop indefinitely
++ fail, if the CFG is ill-formed
++ return an unspecified value, if the program accesses areas of memory illegaly, as in reading an unitialized variable *)
+val eval: mriscfg -> int -> int -> int
