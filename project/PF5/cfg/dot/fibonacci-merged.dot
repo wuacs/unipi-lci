@@ -3,12 +3,12 @@ digraph G {
   0 [shape=ellipse, color=green];
   // Exit node
   6 [shape=ellipse, color=red];
-  0 [label=" \n CopyR0 => R0 \n CopyR0 => R3 \n LoadI 0 => R0 \n CopyR0 => R1 \n LoadI 0 => R2 \n Store R1 => R2 \n CopyR3 => R1 \n LoadI 2 => R0 \n LessR1 => R0 => R0 \n NotR0 => R0"];
-  1 [label=" \n LoadI 1 => R0 \n CopyR0 => R1 \n LoadI 0 => R2 \n Store R1 => R2 \n LoadI 0 => R0 \n CopyR0 => R2"];
-  2 [label=" \n CopyR3 => R1 \n LoadI 2 => R0 \n LessR1 => R0 => R0 \n NotR0 => R0"];
-  3 [label=" \n LoadI 0 => R0 \n Load R0 => R0 \n CopyR0 => R0 \n CopyR0 => R0 \n LoadI 0 => R0 \n Load R0 => R0 \n CopyR0 => R1 \n CopyR2 => R2 \n AddR1 => R2 => R1 \n CopyR1 => R0 \n LoadI 0 => R2 \n Store R0 => R2 \n CopyR0 => R0 \n CopyR0 => R2 \n CopyR3 => R0 \n SubIR0 => 1 => R0 \n CopyR0 => R3"];
+  0 [label=" \n CopyR0 => R0 \n CopyR0 => R1 \n LoadI 2 => R2 \n Store R1 => R2 \n LoadI 0 => R0 \n CopyR0 => R1 \n LoadI 3 => R2 \n Store R1 => R2 \n LoadI 2 => R0 \n Load R0 => R0 \n CopyR0 => R1 \n LoadI 2 => R0 \n LessR1 => R0 => R0 \n NotR0 => R0"];
+  1 [label=" \n LoadI 1 => R0 \n CopyR0 => R1 \n LoadI 3 => R2 \n Store R1 => R2 \n LoadI 0 => R0 \n CopyR0 => R1 \n LoadI 1 => R2 \n Store R1 => R2"];
+  2 [label=" \n LoadI 2 => R0 \n Load R0 => R0 \n CopyR0 => R1 \n LoadI 2 => R0 \n LessR1 => R0 => R0 \n NotR0 => R0"];
+  3 [label=" \n LoadI 3 => R1 \n Load R1 => R1 \n CopyR1 => R0 \n CopyR0 => R1 \n LoadI 0 => R2 \n Store R1 => R2 \n LoadI 3 => R0 \n Load R0 => R0 \n CopyR0 => R1 \n LoadI 1 => R2 \n Load R2 => R2 \n CopyR2 => R0 \n AddR1 => R0 => R0 \n CopyR0 => R1 \n LoadI 3 => R2 \n Store R1 => R2 \n LoadI 0 => R1 \n Load R1 => R1 \n CopyR1 => R0 \n CopyR0 => R1 \n LoadI 1 => R2 \n Store R1 => R2 \n LoadI 2 => R1 \n Load R1 => R1 \n CopyR1 => R0 \n SubIR0 => 1 => R0 \n CopyR0 => R1 \n LoadI 2 => R2 \n Store R1 => R2"];
   4 [label=" \n Nop"];
-  5 [label=" \n LoadI 1 => R0 \n CopyR0 => R2 \n LoadI 0 => R3 \n Store R2 => R3"];
+  5 [label=" \n LoadI 1 => R0 \n CopyR0 => R2 \n LoadI 3 => R3 \n Store R2 => R3"];
   6 [label=" \n Nop"];
 0 -> 1 [label="true"];
 0 -> 5 [label="false"];1 -> 2;

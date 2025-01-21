@@ -288,9 +288,10 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
   | Some blk_code -> 
       let reversed_instructions = List.rev blk_code in
       let available_registers = RegisterSet.diff (RegisterSet.remove register (RegisterSet.add_seq (Seq.init register_number (fun x -> Id x)) RegisterSet.empty)) (NodeMap.find blk liveness_result).out_set in
-      let _ = match blk with Label t -> (printf "num of available registers %d in block %d\n" (RegisterSet.cardinal available_registers) t) in
+      let _ = match blk with Label t -> (printf "num of available registers %d in block %d with size %d\n" (RegisterSet.cardinal available_registers) t (List.length reversed_instructions)) in
       fst (List.fold_left (fun (new_list, available_registers) instruction -> 
         let read = Data_flow_analysis.Utils.extract_read_registers instruction in 
+        let written = Data_flow_analysis.Utils.extract_written_register instruction in
         let available_registers = RegisterSet.diff available_registers read in
         let (prefix_list, reading_register) = 
           if RegisterSet.mem register read then 
@@ -305,7 +306,6 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
           else
             (new_list, None)
         in
-        let written = Data_flow_analysis.Utils.extract_written_register instruction in
         let (complete_list, available_registers) =
           match written with
           | Some r when r = register -> 
@@ -318,6 +318,7 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
                        available_registers)
                   | None -> raise (NotEnoughRegisters "Not enough registers to write spilled register"))
               | None -> 
+                  if ((get_reg_id register) = -3) then Printf.printf "size is %d\n" ((List.length reversed_instructions));
                   let write_in_register = 
                     match RegisterSet.choose_opt available_registers with
                     | Some r -> r
@@ -333,14 +334,14 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
                     Minirisc.Store(write_in_register, address_register)] @ prefix_list, 
                    available_registers)
               end
-          | Some r -> (prefix_list, RegisterSet.add r available_registers)
-          | None -> (prefix_list, available_registers)
+          | Some r when ((RegisterSet.mem r read) <> true) && (get_reg_id r) >= 0 -> (prefix_list, RegisterSet.add r available_registers)
+          | _ -> (prefix_list, available_registers)
         in
         if List.length new_list = List.length complete_list then
           (instruction :: complete_list, available_registers)
         else
           (complete_list, available_registers)
-      ) ([], available_registers) reversed_instructions)
+        ) ([], available_registers) reversed_instructions)
   | None -> raise (IllFormedCfg "The Cfg passed as input does not contain the needed block of code")
   in
   let (_, mapping, blocks) = 
@@ -349,9 +350,10 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
       (current_address + 1, 
       RegisterMap.add (unflag_spill_register register) (Address current_address) spilled_mapping,
       NodeMap.fold 
-      (fun node _ map -> (NodeMap.add node (spill_register_local register node cfg (Address current_address)) map))
-      blocks 
-      NodeMap.empty)) spilled_registers (0, RegisterMap.empty, cfg.code))
+      (fun node _ map -> 
+          (NodeMap.add node (spill_register_local register node {cfg with code = map} (Address current_address)) map))
+        blocks 
+        blocks)) spilled_registers (0, RegisterMap.empty, cfg.code))
   in
     (blocks, mapping)
 
@@ -383,13 +385,14 @@ by loading the wanted values in the input memory location and extracting the
 output value by reading from the output location.
 *)
 let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : (mriscfg * memory_loc * memory_loc) = 
+    if (k < 4) then failwith "Register number must be at least 4" else
     let uncolored_register = Id 10000 in
     let g = compute_live_ranges cfg in
     let (vertexesByDegree, vertexesByMetric, vertexesByColor) = RegisterMap.fold (fun reg neighbors (setByDegree, setByMetric, setByColor) -> 
       let vertex = {id = reg; degree = (RegisterSet.cardinal neighbors); cost = (compute_cost_register cfg reg); color = (get_reg_id uncolored_register)} in
       (VertexSetByDegree.add vertex setByDegree, VertexSetBySpillMetric.add vertex setByMetric, VertexSetByColor.add vertex setByColor))
     g (VertexSetByDegree.empty, VertexSetBySpillMetric.empty, VertexSetByColor.empty) in
-    let (colors, spilled_registers) = chaitin_briggs_step1 g (Data_flow_analysis.Utils.get_top cfg) vertexesByDegree vertexesByMetric (VertexStack.create ()) k vertexesByColor RegisterSet.empty in
+    let (colors, spilled_registers) = chaitin_briggs_step1 g (Data_flow_analysis.Utils.get_top cfg) vertexesByDegree vertexesByMetric (VertexStack.create ()) (k-2) vertexesByColor RegisterSet.empty in
     let color_map = VertexSetByColor.fold (fun v map -> RegisterMap.add v.id (Id v.color) map) colors RegisterMap.empty in
     let merged_cfg = apply_color_map_to_cfg cfg color_map in
     let (spilled_code, spilled_memory_mapping) = apply_spilling_to_cfg merged_cfg spilled_registers k in
@@ -404,6 +407,7 @@ let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : (mriscfg * memory_loc *
     | None -> Register (RegisterMap.find in_register color_map)
     in
     (spilled_cfg, input_location, output_location)
+
 let get_live_ranges_dot_format (cfg : mriscfg) : string = 
   let g = compute_live_ranges cfg in
   let other_registers start set =
