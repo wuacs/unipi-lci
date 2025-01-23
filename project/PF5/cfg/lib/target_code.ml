@@ -537,7 +537,7 @@ let generate_target_code_string cfg k =
     else
       ((str ^ to_append), curr_pos+1, curr_label)) ("", 0, 0) target_code)
 
-let eval cfg k input =
+let eval cfg ~registers:k ~value:input =
   (* Function to generate initialization code for the input variable, *)
   let push_initialization_instructions input_loc free1 free2 init_value = 
     match input_loc with

@@ -4,6 +4,9 @@ type mriscfg = Minirisc.scomm Cfg.control_flow_graph
 once arrived at this label, the program has ended *)
 val exit_label : Minirisc.label
 
+(**
+
+*)
 val chaitin_briggs_algorithm: mriscfg -> int -> (mriscfg * Minirisc.memory_loc * Minirisc.memory_loc)
 
 (**
@@ -38,4 +41,4 @@ variable this function may
 + loop indefinitely
 + fail, if the CFG is ill-formed
 + return an unspecified value, if the program accesses areas of memory illegaly, as in reading an unitialized variable *)
-val eval: mriscfg -> int -> int -> int
+val eval: mriscfg -> registers:int -> value:int -> int

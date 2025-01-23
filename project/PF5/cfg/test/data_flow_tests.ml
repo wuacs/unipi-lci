@@ -2,7 +2,7 @@ open Alcotest
 
 let test_defined_analysis () =
   let input_dir = Sys.getcwd() ^ "/../../../programs/" in
-  let output_dir = Sys.getcwd() ^ "/../../../test/expected/defined_analysis/" in
+  let output_dir = Sys.getcwd() ^ "/../../../test/defined_analysis/expected/" in
   Sys.readdir input_dir
   |> Array.to_list
   |> List.iter (fun input_file ->

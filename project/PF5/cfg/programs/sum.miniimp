@@ -1,0 +1,8 @@
+def main with input in output out as
+    x := in;
+    out := 0;
+    while not x < 0 do (
+        out := out + x; 
+        x := x - 1
+    );
+    skip
