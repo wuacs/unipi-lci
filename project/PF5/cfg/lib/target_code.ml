@@ -150,19 +150,19 @@ let replace_register
   (instruction : scomm)
   (mapping : register -> register) =
   match instruction with
-  | Minirisc.Rtor (op, reg1, reg2, reg3) ->
-      Minirisc.Rtor (op, mapping reg1, mapping reg2, mapping reg3)
-  | Minirisc.Rtoi (op, reg1, imm, reg2) ->
-      Minirisc.Rtoi (op, mapping reg1, imm, mapping reg2)
-  | Minirisc.Rury (op, reg1, reg2) ->
-      Minirisc.Rury (op, mapping reg1, mapping reg2)
-  | Minirisc.Load (reg1, reg2) ->
-      Minirisc.Load (mapping reg1, mapping reg2)
-  | Minirisc.LoadI (imm, reg1) ->
-      Minirisc.LoadI (imm, mapping reg1)
-  | Minirisc.Store (reg1, reg2) ->
-      Minirisc.Store (mapping reg1, mapping reg2)
-  | Minirisc.Nop -> Minirisc.Nop
+  | Rtor (op, reg1, reg2, reg3) ->
+      Rtor (op, mapping reg1, mapping reg2, mapping reg3)
+  | Rtoi (op, reg1, imm, reg2) ->
+      Rtoi (op, mapping reg1, imm, mapping reg2)
+  | Rury (op, reg1, reg2) ->
+      Rury (op, mapping reg1, mapping reg2)
+  | Load (reg1, reg2) ->
+      Load (mapping reg1, mapping reg2)
+  | LoadI (imm, reg1) ->
+      LoadI (imm, mapping reg1)
+  | Store (reg1, reg2) ->
+      Store (mapping reg1, mapping reg2)
+  | Nop -> Nop
 
 (** 
 This function should be injective, as, together with {b unflag_spill_register}
@@ -663,8 +663,6 @@ let generate_target_code_file
         Printf.fprintf oc "%s" (generate_target_code_string risc_cfg register_number);
     end
   | None -> failwith (Printf.sprintf "Error while parsing file %s\n" miniimp_file_path)
-
-
 
 let compile_and_run_imp_from_file
   ?(register_number = 4)
