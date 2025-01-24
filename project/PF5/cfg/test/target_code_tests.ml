@@ -21,90 +21,33 @@ let power2 n =
   in
     helper n 1 
 
+let compute_and_test ~filename ~oracle ~tcs =
+  let input_dir = Sys.getcwd() ^ "/../../../programs/" in
+  let inputs = List.init tcs (fun x -> x) in
+  List.iter (fun x ->
+    Alcotest.check
+      Alcotest.int
+      (Printf.sprintf "Error in %s for input %d" filename x)
+      (oracle x)
+      (Target_code.compile_and_run_imp_from_file ~register_number:4 (input_dir ^ filename) ~input:x ~check_undefinedness:true)
+  ) inputs
 
 let test_fibonacci () =
-  let tcs = 10 in
-  let filename = "fibonacci.miniimp" in
-  let input_dir = Sys.getcwd() ^ "/../../../programs/" in
-  let input_channel = open_in (input_dir ^ filename) in
-  let actual_output = Lexing.from_channel input_channel in
-    match Miniimp.parse_with_errors actual_output with
-    | None -> Alcotest.fail "Error in parsing MiniImp's Fibonacci, target code testing"
-    | Some prog ->
-        (try
-            let fibonacci_minirisc = Target_code.eval ((Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))) in
-            let inputs = List.init tcs (fun x -> x) in
-            close_in input_channel;     (* Close the input file as well *)
-            List.iter (fun x -> Alcotest.check Alcotest.int ("error fibonacci for " ^string_of_int x) (fibonacci x) (fibonacci_minirisc 4 x)) 
-                inputs
-          with End_of_file ->
-            close_in input_channel;
-            Alcotest.fail ("Fibonacci broken"))
-let test_factorial () = 
-  let tcs = 10 in
-  let filename = "factorial.miniimp" in
-  let input_dir = Sys.getcwd() ^ "/../../../programs/" in
-  let input_channel = open_in (input_dir ^ filename) in
-  let actual_output = Lexing.from_channel input_channel in
-    match Miniimp.parse_with_errors actual_output with
-    | None -> Alcotest.fail "Error in parsing MiniImp's Factorial, target code testing"
-    | Some prog ->
-        (try
-            let factorial_minirisc = Target_code.eval ((Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))) in
-            let inputs = List.init tcs (fun x -> x) in
-            close_in input_channel;     (* Close the input file as well *)
-            List.iter (fun x -> Alcotest.check Alcotest.int ("error factorial for " ^ string_of_int x) (factorial x) (factorial_minirisc 4 x)) 
-                inputs
-          with End_of_file ->
-            close_in input_channel;
-            Alcotest.fail ("Factorial broken"))
-  
+  compute_and_test ~filename:"fibonacci.miniimp" ~oracle:fibonacci ~tcs:10
+
+let test_factorial () =
+  compute_and_test ~filename:"factorial.miniimp" ~oracle:factorial ~tcs:10
+
 let test_sumnaturals () =
-  let tcs = 100 in
-  let filename = "sumnaturals.miniimp" in
-  let input_dir = Sys.getcwd() ^ "/../../../programs/" in
-  let input_channel = open_in (input_dir ^ filename) in
-  let actual_output = Lexing.from_channel input_channel in
-    match Miniimp.parse_with_errors actual_output with
-    | None -> Alcotest.fail "Error in parsing MiniImp's Sum of N naturals, target code testing"
-    | Some prog ->
-        (try
-            let factorial_minirisc = Target_code.eval ((Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))) in
-            let inputs = List.init tcs (fun x -> x) in
-            close_in input_channel;     (* Close the input file as well *)
-            List.iter (fun x -> Alcotest.check Alcotest.int ("error natural sum for " ^ string_of_int x) (sum_first_naturals x) (factorial_minirisc 5 x)) 
-                inputs
-          with End_of_file ->
-            close_in input_channel;
-            Alcotest.fail ("Sum broken"))
+  compute_and_test ~filename:"sumnaturals.miniimp" ~oracle:sum_first_naturals ~tcs:100
 
 let test_power2 () =
-  let tcs = 20 in
-  let filename = "power2.miniimp" in
-  let input_dir = Sys.getcwd() ^ "/../../../programs/" in
-  let input_channel = open_in (input_dir ^ filename) in
-  let actual_output = Lexing.from_channel input_channel in
-    match Miniimp.parse_with_errors actual_output with
-    | None -> Alcotest.fail "Error in parsing MiniImp's power of 2 program, target code testing"
-    | Some prog ->
-        (try
-            let power2_minirisc = Target_code.eval ((Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))) in
-            let inputs = List.init tcs (fun x -> x) in
-            close_in input_channel; (* Close the input file as well *)
-            List.iter (fun x -> 
-              Alcotest.check 
-              Alcotest.int 
-              (Printf.sprintf "error computing 2^%d" x) 
-              (power2 x) 
-              (power2_minirisc 4 x)) inputs
-          with End_of_file ->
-            close_in input_channel;
-            Alcotest.fail ("Sum broken"))
+  compute_and_test ~filename:"power2.miniimp" ~oracle:power2 ~tcs:20
 
 let () = run "Fibonacci in MiniRISC test" [
   "Target Code Tests",
   [test_case "test_fibonacci" `Quick test_fibonacci;
-  test_case "test_factorial" `Quick test_factorial;
-  test_case "test_sumnaturals" `Quick test_sumnaturals;
-  test_case "test_power2" `Quick test_power2]
+   test_case "test_factorial" `Quick test_factorial;
+   test_case "test_sumnaturals" `Quick test_sumnaturals;
+   test_case "test_power2" `Quick test_power2]
 ]

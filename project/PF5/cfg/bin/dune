@@ -23,7 +23,7 @@
  (libraries cfg data_flow_analysis))
 
 (executable
- (package cfg)
- (public_name imp)
- (name imp)
- (libraries cfg data_flow_analysis))
+ (package miniimp)
+ (public_name imp_interpreter)
+ (name imp_interpreter)
+ (libraries cfg data_flow_analysis miniimp))

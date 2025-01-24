@@ -537,7 +537,7 @@ let generate_target_code_string cfg k =
     else
       ((str ^ to_append), curr_pos+1, curr_label)) ("", 0, 0) target_code)
 
-let eval cfg ~registers:k ~value:input =
+let eval_risc_cfg cfg ~registers:k ~value:input =
   (* Function to generate initialization code for the input variable, *)
   let push_initialization_instructions input_loc free1 free2 init_value = 
     match input_loc with
@@ -645,4 +645,41 @@ let eval cfg ~registers:k ~value:input =
   match out_location with
   | Register r -> RegisterMap.find r registers
   | Memory a -> MemoryMap.find a memory
-      
+  
+let generate_target_code_file
+  ?(register_number = 4)
+  miniimp_file_path
+  ~check_undefinedness
+  ~target_file_path : unit = 
+  if register_number < 4 then failwith "Register number must be >= 4";
+  match Miniimp.parse_with_errors (Lexing.from_channel (open_in miniimp_file_path)) with
+  | Some imp_prog -> 
+    begin
+      let risc_cfg = miniimp_cfg_to_minirisc (translate_miniimp imp_prog) in
+      if check_undefinedness && (Data_flow_analysis.check_for_undefinedness risc_cfg) then
+        failwith "Undefined variable found"  
+      else
+        let oc = open_out target_file_path in
+        Printf.fprintf oc "%s" (generate_target_code_string risc_cfg register_number);
+    end
+  | None -> failwith (Printf.sprintf "Error while parsing file %s\n" miniimp_file_path)
+
+
+
+let compile_and_run_imp_from_file
+  ?(register_number = 4)
+  miniimp_file_path
+  ~input
+  ~check_undefinedness : int = 
+  if register_number < 4 then failwith "Register number must be >= 4";
+  let in_channel = open_in miniimp_file_path in
+  match Miniimp.parse_with_errors (Lexing.from_channel in_channel) with
+  | Some imp_prog -> 
+    Fun.protect ~finally: (fun _ -> close_in in_channel) (
+      fun _ ->
+      let risc_cfg = miniimp_cfg_to_minirisc (translate_miniimp imp_prog) in
+      if check_undefinedness && (Data_flow_analysis.check_for_undefinedness risc_cfg) then
+          failwith "Undefined variable found"  
+      else
+        eval_risc_cfg risc_cfg ~registers:register_number ~value:input)
+  | None -> failwith (Printf.sprintf "Error while parsing file %s\n" miniimp_file_path)

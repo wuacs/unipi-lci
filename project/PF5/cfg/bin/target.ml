@@ -1,4 +1,4 @@
-let generate_target_code () = 
+(*let generate_target_code () = 
   let channel = open_in Sys.argv.(1) in
   let namefile = Sys.argv.(2) in
   let reg_num = Sys.argv.(3) in
@@ -22,4 +22,4 @@ let eval_target_code () =
       close_out oc
   | None -> print_string "no good"
 
-let () = eval_target_code ()
+let () = eval_target_code ()*)
