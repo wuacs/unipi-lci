@@ -1,7 +1,0 @@
-(test 
- (name data_flow_tests)
- (libraries miniimp data_flow_analysis alcotest))
-
-(test
- (name target_code_tests)
- (libraries target_code miniimp alcotest))

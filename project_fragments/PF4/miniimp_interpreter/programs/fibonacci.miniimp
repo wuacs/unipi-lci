@@ -1,0 +1,16 @@
+def main with input in output out as
+    x := in;
+    out := 0;
+    if not x < 2 then (
+        x := x - 1;
+        out := 1;
+        second := 0;
+        while not x < 2 do (
+            temp := out;
+            out := out + second;
+            x := x - 1;
+            second := temp
+        )
+    )
+    else
+        out := 2

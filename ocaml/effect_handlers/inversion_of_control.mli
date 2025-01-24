@@ -1,0 +1,1 @@
+val invert : (('a -> unit) -> unit) -> 'a Seq.t

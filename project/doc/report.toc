@@ -1,0 +1,11 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {0.1}Project Fragment 3 - Minityfun}{1}{section.0.1}%
+\contentsline {section}{\numberline {0.2}Project Fragment 4 - Parsing}{1}{section.0.2}%
+\contentsline {subsection}{\numberline {0.2.1}The negative conflict}{1}{subsection.0.2.1}%
+\contentsline {subsection}{\numberline {0.2.2}Miniimp's conflicts}{1}{subsection.0.2.2}%
+\contentsline {subsection}{\numberline {0.2.3}Minityfun's conflicts}{3}{subsection.0.2.3}%
+\contentsline {section}{\numberline {0.3}Project Fragment 5 - CFGs}{3}{section.0.3}%
+\contentsline {section}{\numberline {0.4}Analyses}{5}{section.0.4}%
+\contentsline {section}{\numberline {0.5}Target Code Generation}{5}{section.0.5}%
+\contentsline {section}{\numberline {0.6}How to use}{5}{section.0.6}%
+\contentsline {subsection}{\numberline {0.6.1}MiniFun interpreter}{7}{subsection.0.6.1}%
