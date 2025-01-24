@@ -1,0 +1,8 @@
+def main with input in output out as
+    exp := in;
+    base := 2;
+    out := 1;
+    while not exp < 1 do (
+        out := out * base; 
+        exp := exp - 1
+    )

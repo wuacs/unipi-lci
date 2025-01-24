@@ -1,0 +1,19 @@
+digraph G {
+  // Entry node
+  0 [shape=ellipse, color=green];
+  // Exit node
+  6 [shape=ellipse, color=red];
+  0 [label=" \n CopyR0 => R3 \n CopyR3 => R2 \n LoadI 0 => R5 \n CopyR5 => R1 \n CopyR2 => R8 \n LoadI 2 => R9 \n LessR8 => R9 => R7 \n NotR7 => R6"];
+  1 [label=" \n LoadI 1 => R12 \n CopyR12 => R1 \n LoadI 0 => R14 \n CopyR14 => R13"];
+  2 [label=" \n CopyR2 => R18 \n LoadI 2 => R19 \n LessR18 => R19 => R17 \n NotR17 => R16"];
+  3 [label=" \n CopyR1 => R22 \n CopyR22 => R21 \n CopyR1 => R25 \n CopyR13 => R26 \n AddR25 => R26 => R24 \n CopyR24 => R1 \n CopyR21 => R28 \n CopyR28 => R13 \n CopyR2 => R31 \n SubIR31 => 1 => R30 \n CopyR30 => R2"];
+  4 [label=" \n Nop"];
+  5 [label=" \n LoadI 1 => R36 \n CopyR36 => R1"];
+  6 [label=" \n Nop"];
+0 -> 1 [label="true"];
+0 -> 5 [label="false"];1 -> 2;
+2 -> 3 [label="true"];
+2 -> 4 [label="false"];3 -> 2;
+4 -> 6;
+5 -> 6;
+}

@@ -1,0 +1,25 @@
+(lang dune 3.17)
+(using menhir 3.0)
+(name lci)
+(opam_file_location inside_opam_directory)
+
+(package
+ (name cfg))
+
+ (package
+ (name data_flow_analysis))
+
+ (package
+ (name miniimp))
+
+ (package
+ (name minifun))
+
+ (package
+ (name minityfun))
+
+ (package
+ (name target_code))
+
+ (package
+ (name minirisc))

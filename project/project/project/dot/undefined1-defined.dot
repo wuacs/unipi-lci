@@ -1,0 +1,17 @@
+digraph G {
+  // Entry node
+  0 [shape=ellipse, color=green];
+  // Exit node
+  3 [shape=ellipse, color=red];
+  0 [label="Defined-IN: [ R0\n ]
+      \n Defined-OUT: [ R0\nR3\nR4\nR5\nR6\nR7\nR8\nR9\n ]"];
+  1 [label="Defined-IN: [ R0\nR3\nR4\nR5\nR6\nR7\nR8\nR9\n ]
+      \n Defined-OUT: [ R0\nR3\nR4\nR5\nR6\nR7\nR8\nR9\nR11\nR12\nR13\n ]"];
+  2 [label="Defined-IN: [ R0\nR3\nR4\nR5\nR6\nR7\nR8\nR9\nR12\nR13\n ]
+      \n Defined-OUT: [ R0\nR3\nR4\nR5\nR6\nR7\nR8\nR9\nR12\nR13\nR16\nR17\nR19\nR20\n ]"];
+  3 [label="Defined-IN: [ R0\nR3\nR4\nR5\nR6\nR7\nR8\nR9\nR12\nR13\n ]
+      \n Defined-OUT: [ R0\nR1\nR3\nR4\nR5\nR6\nR7\nR8\nR9\nR12\nR13\nR24\nR25\n ]"];
+0 -> 1;
+1 -> 2 [label="true"];
+1 -> 3 [label="false"];2 -> 1;
+}

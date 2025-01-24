@@ -1,0 +1,69 @@
+L 0	CopyR0 => R1
+LoadI 2 => R2
+Store R1 => R2
+LoadI 0 => R0
+CopyR0 => R1
+LoadI 3 => R2
+Store R1 => R2
+LoadI 2 => R0
+Load R0 => R0
+CopyR0 => R1
+LoadI 2 => R0
+LessR1 => R0 => R0
+NotR0 => R0
+cjump r0 l1 l5
+L 1	LoadI 1 => R0
+CopyR0 => R1
+LoadI 3 => R2
+Store R1 => R2
+LoadI 0 => R0
+CopyR0 => R1
+LoadI 1 => R2
+Store R1 => R2
+jump l2
+L 2	LoadI 2 => R0
+Load R0 => R0
+CopyR0 => R1
+LoadI 2 => R0
+LessR1 => R0 => R0
+NotR0 => R0
+cjump r0 l3 l4
+L 3	LoadI 3 => R1
+Load R1 => R1
+CopyR1 => R0
+CopyR0 => R1
+LoadI 0 => R2
+Store R1 => R2
+LoadI 3 => R0
+Load R0 => R0
+CopyR0 => R1
+LoadI 1 => R2
+Load R2 => R2
+CopyR2 => R0
+AddR1 => R0 => R0
+CopyR0 => R1
+LoadI 3 => R2
+Store R1 => R2
+LoadI 0 => R1
+Load R1 => R1
+CopyR1 => R0
+CopyR0 => R1
+LoadI 1 => R2
+Store R1 => R2
+LoadI 2 => R1
+Load R1 => R1
+CopyR1 => R0
+SubIR0 => 1 => R0
+CopyR0 => R1
+LoadI 2 => R2
+Store R1 => R2
+jump l2
+L 4	Nop
+jump l6
+L 6	Nop
+jump l10000
+L 5	LoadI 1 => R0
+CopyR0 => R2
+LoadI 3 => R3
+Store R2 => R3
+jump l6

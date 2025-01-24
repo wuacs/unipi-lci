@@ -1,0 +1,41 @@
+(executable
+(package cfg)
+(public_name merging)
+(name merging)
+(libraries target_code))
+
+(executable
+ (package cfg)
+ (public_name target)
+ (name target)
+ (libraries target_code))
+
+(executable
+ (package cfg)
+ (public_name cfg)
+ (name main)
+ (libraries cfg data_flow_analysis))
+
+(executable
+ (package data_flow_analysis)
+ (public_name dfa)
+ (name dfa)
+ (libraries cfg data_flow_analysis))
+
+(executable
+ (package miniimp)
+ (public_name imp)
+ (name imp)
+ (libraries cfg data_flow_analysis miniimp))
+
+(executable
+ (package minifun)
+ (public_name untyfun)
+ (name untyfun)
+ (libraries minifun))
+
+ (executable
+ (package minityfun)
+ (public_name tyfun)
+ (name tyfun)
+ (libraries minityfun))
