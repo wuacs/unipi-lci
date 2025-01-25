@@ -35,7 +35,7 @@ val generate_target_code_string: mriscfg -> int -> string
 
 (**
 Takes as first argument the path of a MiniImp's file and
-+ An optional number of registers, the target code will then suppose only
++ An optionally a number of registers, the target code will then suppose only
 such an amount of registers, which will be labelled from 0 to ({b register_number})-1.
 The number must be >= 4, otherwise this function fails. The default value is 4.
 + A boolean indicating whether or not to perform a static analysis to check for undefined variables.

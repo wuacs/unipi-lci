@@ -1,73 +1,73 @@
-main:	CopyR0 => R1
-LoadI 2 => R2
-Store R1 => R2
-LoadI 0 => R0
-CopyR0 => R1
-LoadI 3 => R2
-Store R1 => R2
-LoadI 2 => R0
-Load R0 => R0
-CopyR0 => R1
-LoadI 2 => R0
-LessR1 => R0 => R0
-NotR0 => R0
+main:	copy 0 => 1
+loadI  2 => 2
+store 1 => 2
+loadI  0 => 0
+copy 0 => 1
+loadI  3 => 2
+store 1 => 2
+loadI  2 => 0
+load 0 => 0
+copy 0 => 1
+loadI  2 => 0
+less 1 0 => 0
+not 0 => 0
 cjump r0 l1 l5
-l1:	LoadI 1 => R0
-CopyR0 => R1
-LoadI 3 => R2
-Store R1 => R2
-LoadI 0 => R0
-CopyR0 => R1
-LoadI 1 => R2
-Store R1 => R2
+l1:	loadI  1 => 0
+copy 0 => 1
+loadI  3 => 2
+store 1 => 2
+loadI  0 => 0
+copy 0 => 1
+loadI  1 => 2
+store 1 => 2
 jump l2
-l2:	LoadI 2 => R0
-Load R0 => R0
-CopyR0 => R1
-LoadI 2 => R0
-LessR1 => R0 => R0
-NotR0 => R0
+l2:	loadI  2 => 0
+load 0 => 0
+copy 0 => 1
+loadI  2 => 0
+less 1 0 => 0
+not 0 => 0
 cjump r0 l3 l4
-l3:	LoadI 3 => R1
-Load R1 => R1
-CopyR1 => R0
-CopyR0 => R1
-LoadI 0 => R2
-Store R1 => R2
-LoadI 3 => R0
-Load R0 => R0
-CopyR0 => R1
-LoadI 1 => R2
-Load R2 => R2
-CopyR2 => R0
-AddR1 => R0 => R0
-CopyR0 => R1
-LoadI 3 => R2
-Store R1 => R2
-LoadI 0 => R1
-Load R1 => R1
-CopyR1 => R0
-CopyR0 => R1
-LoadI 1 => R2
-Store R1 => R2
-LoadI 2 => R1
-Load R1 => R1
-CopyR1 => R0
-SubIR0 => 1 => R0
-CopyR0 => R1
-LoadI 2 => R2
-Store R1 => R2
+l3:	loadI  3 => 1
+load 1 => 1
+copy 1 => 0
+copy 0 => 1
+loadI  0 => 2
+store 1 => 2
+loadI  3 => 0
+load 0 => 0
+copy 0 => 1
+loadI  1 => 2
+load 2 => 2
+copy 2 => 0
+add 1 0 => 0
+copy 0 => 1
+loadI  3 => 2
+store 1 => 2
+loadI  0 => 1
+load 1 => 1
+copy 1 => 0
+copy 0 => 1
+loadI  1 => 2
+store 1 => 2
+loadI  2 => 1
+load 1 => 1
+copy 1 => 0
+subI 0 1 => 0
+copy 0 => 1
+loadI  2 => 2
+store 1 => 2
 jump l2
-l4:	Nop
+l4:	nop
 jump l6
-l6:	Nop
-LoadI 3 => R2
-Load R2 => R2
-CopyR2 => R1
+l6:	nop
+loadI  3 => 2
+load 2 => 2
+copy 2 => 1
 jump l-1
-l5:	LoadI 1 => R0
-CopyR0 => R2
-LoadI 3 => R3
-Store R2 => R3
+l5:	loadI  1 => 0
+copy 0 => 2
+loadI  3 => 3
+store 2 => 3
 jump l6
-l-1:	Nop
+l-1:	nop

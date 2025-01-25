@@ -41,7 +41,7 @@ let eval_target_code () =
 let info_string =
 "To generate target code for a MiniImp program, use the following command.\n
 The following options are available: \n
-registers=x a number of registers you want your target code to use, e.g -registers=4 will use 4 registers
+registers=x a number of registers you want your target code to use, e.g registers=4 will use 4 registers
 (R0, R1, R2, R3).
 Default value is 4. \n
 undefined_check to enable check for undefined variables in the MiniImp program, if such a variable is found the compilation fails.\n

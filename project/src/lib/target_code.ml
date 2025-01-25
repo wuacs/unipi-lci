@@ -1,7 +1,6 @@
 exception NotEnoughRegisters of string
 exception IllFormedCfg of string
 
-open Printf
 open Minirisc
 open Cfg
 
@@ -284,7 +283,6 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
   | Some blk_code -> 
       let reversed_instructions = List.rev blk_code in
       let available_registers = RegisterSet.diff (RegisterSet.remove register (RegisterSet.add_seq (Seq.init register_number (fun x -> Id x)) RegisterSet.empty)) (NodeMap.find blk liveness_result).out_set in
-      let _ = match blk with Label t -> (printf "num of available registers %d in block %d with size %d\n" (RegisterSet.cardinal available_registers) t (List.length reversed_instructions)) in
       fst (List.fold_left (fun (new_list, available_registers) instruction -> 
         let read = Data_flow_analysis.Utils.extract_read_registers instruction in 
         let written = Data_flow_analysis.Utils.extract_written_register instruction in

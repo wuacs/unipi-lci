@@ -1,0 +1,39 @@
+main:	copy 0 => 1
+loadI  0 => 2
+store 1 => 2
+loadI  1 => 0
+copy 0 => 1
+loadI  1 => 2
+store 1 => 2
+jump l1
+l1:	loadI  0 => 0
+load 0 => 0
+copy 0 => 1
+loadI  2 => 0
+less 1 0 => 0
+not 0 => 0
+cjump r0 l2 l3
+l2:	loadI  1 => 0
+load 0 => 0
+copy 0 => 1
+loadI  0 => 2
+load 2 => 2
+copy 2 => 0
+mult 1 0 => 0
+copy 0 => 1
+loadI  1 => 2
+store 1 => 2
+loadI  0 => 1
+load 1 => 1
+copy 1 => 0
+subI 0 1 => 0
+copy 0 => 1
+loadI  0 => 2
+store 1 => 2
+jump l1
+l3:	nop
+loadI  1 => 2
+load 2 => 2
+copy 2 => 1
+jump l-1
+l-1:	nop

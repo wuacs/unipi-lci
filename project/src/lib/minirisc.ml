@@ -58,38 +58,69 @@ type comm =
 
 
 let minirisc_command_to_string (stmt : comm) : string =
-  let register_to_string (reg : register) = 
-    "R" ^ (string_of_int (get_reg_id reg)) 
+  let right_hand_side_separator = " => " in
+  let operand_separator = " " in
+  let register_to_string (reg : register) = string_of_int (get_reg_id reg)
   in
   let brop_code_to_string (stmt : brop) : string = 
     match stmt with 
-    | Add -> "Add"
-    | Mult -> "Mult"
-    | Less -> "Less"
-    | And -> "And"
-    | Sub -> "Sub"
+    | Add -> "add"
+    | Mult -> "mult"
+    | Less -> "less"
+    | And -> "and"
+    | Sub -> "sub"
   in
   let biop_code_to_string (stmt : biop) : string = 
     match stmt with
-    | AddI -> "AddI"
-    | MultI -> "MultI"
-    | AndI -> "AndI"
-    | SubI -> "SubI"
+    | AddI -> "addI"
+    | MultI -> "multI"
+    | AndI -> "andI"
+    | SubI -> "subI"
   in
   let unaryop_code_to_string (stmt : urop) : string = 
     match stmt with
-    | Copy -> "Copy"
-    | Not -> "Not"
+    | Copy -> "copy"
+    | Not -> "not"
   in
   let minirisc_simple_to_string (stmt : scomm) : string =
     match stmt with
-    | Rtor(opcode, r1, r2, r3) -> brop_code_to_string opcode ^ (register_to_string r1) ^ " => " ^ (register_to_string r2) ^ " => " ^ (register_to_string r3)
-    | Rtoi(opcode, r1, n, r3) -> biop_code_to_string opcode ^ (register_to_string r1) ^ " => " ^ (string_of_int n) ^ " => " ^ (register_to_string r3)
-    | Rury(opcode, r1, r2) -> unaryop_code_to_string opcode ^ (register_to_string r1) ^ " => " ^ (register_to_string r2)
-    | Load(r1, r2) -> "Load " ^ (register_to_string r1) ^ " => " ^ (register_to_string r2)
-    | LoadI(n, r) -> "LoadI " ^ (string_of_int n) ^ " => " ^ (register_to_string r)
-    | Store(r1, r2) -> "Store " ^ (register_to_string r1) ^ " => " ^ (register_to_string r2)
-    | Nop -> "Nop"
+    | Rtor(opcode, r1, r2, r3) -> 
+      brop_code_to_string opcode ^
+      operand_separator ^ 
+      register_to_string r1 ^ 
+      operand_separator ^ 
+      (register_to_string r2) ^ 
+      right_hand_side_separator ^ (register_to_string r3)
+    | Rtoi(opcode, r1, n, r2) -> 
+      biop_code_to_string opcode ^
+      operand_separator ^
+      register_to_string r1 ^ 
+      operand_separator ^ 
+      string_of_int n ^
+      right_hand_side_separator ^ 
+      register_to_string r2
+    | Rury(opcode, r1, r2) -> 
+      unaryop_code_to_string opcode ^
+      operand_separator ^
+      register_to_string r1 ^
+      right_hand_side_separator ^
+      register_to_string r2
+    | Load(r1, r2) -> "load" ^
+      operand_separator ^ 
+      register_to_string r1 ^ 
+      right_hand_side_separator ^
+      register_to_string r2
+    | LoadI(n, r) -> "loadI " ^
+      operand_separator ^
+      string_of_int n ^ 
+      right_hand_side_separator ^ 
+      register_to_string r
+    | Store(r1, r2) -> "store" ^ 
+      operand_separator ^ 
+      register_to_string r1 ^ 
+      right_hand_side_separator ^ 
+      register_to_string r2
+    | Nop -> "nop"
   in
     match stmt with
     | Simple(scomm) -> minirisc_simple_to_string scomm
