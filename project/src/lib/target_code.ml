@@ -456,7 +456,7 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int):
     | Register r -> [Rury(Copy, in_register, r)] in 
   let generate_output_instructions output_loc free = 
     match output_loc with
-    | Memory m -> [LoadI(get_memory_address m, free); Store(free, out_register)]
+    | Memory m -> [LoadI(get_memory_address m, free); Load(free, free); Rury(Copy, free, out_register)]
     | Register r -> [Rury(Copy, r, out_register)]
   in
   let remove_garbage (scomm : Minirisc.scomm) : Minirisc.scomm option = 
@@ -512,25 +512,24 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int):
               begin
                 let x1block = rec_helper cfg mapping x1 (curr_pos + blk_len + 1) in
                 let x2block = rec_helper cfg ( LabelMap.union (fun _ k1 k2 -> if (k1 <> k2) then failwith "The same has been labeled twice" else Some(k1)) 
-                mapping (second x1block)) x2 (third x1block + 1) in
+                mapping (second x1block)) x2 (third x1block+1) in
                 match Data_flow_analysis.Utils.extract_written_register (List.hd blk_reversed) with
                 | None -> failwith "Ill-formed Control Flow Graph, the last instruction before a fork should be a write instruction" 
                 | Some wr -> ((first x2block) @ (first x1block) @ (Minirisc.Cjump(wr, Label (access_node x1), Label (access_node x2))) :: blk_mapped_reversed, (second x2block), (third x2block))
               end
-            | None -> (Jump(exit_label)::blk_mapped_reversed, mapping, curr_pos+1)
+            | None -> (Jump(exit_label)::blk_mapped_reversed, mapping, curr_pos+ blk_len)
           end
       end
       in
       let (optimized_cfg, input_location, output_location) = (chaitin_briggs_algorithm cfg k) in
       let code_injected = 
-        let updated_entry = NodeMap.add optimized_cfg.entry 
-        ((generate_input_instructions input_location first_free_register)@(NodeMap.find optimized_cfg.entry optimized_cfg.code)) optimized_cfg.code in
+        let updated_entry = NodeMap.add optimized_cfg.entry ((generate_input_instructions input_location first_free_register)@(NodeMap.find optimized_cfg.entry optimized_cfg.code)) optimized_cfg.code in
         NodeMap.add optimized_cfg.exit ((NodeMap.find optimized_cfg.exit updated_entry)@(generate_output_instructions output_location first_free_register)) updated_entry
       in
-      let (reveresed_target_code, label_map, _) = rec_helper ({optimized_cfg with code = code_injected}) LabelMap.empty optimized_cfg.entry 0 
+      let (reversed_code, label_map, _) = rec_helper ({optimized_cfg with code = code_injected}) LabelMap.empty optimized_cfg.entry 0 
       in
-      let number_of_instructions = List.length reveresed_target_code in
-      (List.rev (Simple(Nop)::reveresed_target_code), (LabelMap.add exit_label number_of_instructions label_map))
+      let number_of_instructions = List.length reversed_code in
+      (List.rev (Simple(Nop)::reversed_code), (LabelMap.add exit_label number_of_instructions label_map))
 
 
 let generate_target_code_string cfg k = 
@@ -632,6 +631,7 @@ let eval_risc_cfg cfg ~registers:k ~value:input =
 
   (* Function to iterate over instructions *)
   let rec run pc memory registers =
+    Printf.printf "pc is %d\n" pc;
     if (pc <> (Array.length array_instructions)) then
       let instruction = array_instructions.(pc) in
       let (memory, registers, pc) = execute_instruction instruction memory registers pc in

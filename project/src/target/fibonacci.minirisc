@@ -61,6 +61,9 @@ jump l2
 l4:	Nop
 jump l6
 l6:	Nop
+LoadI 3 => R2
+Load R2 => R2
+CopyR2 => R1
 jump l-1
 l5:	LoadI 1 => R0
 CopyR0 => R2
