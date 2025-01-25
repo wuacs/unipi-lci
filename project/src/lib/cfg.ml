@@ -27,9 +27,6 @@ type 'a control_flow_graph = {
 
 type coercable = Boolean of ImpAst.b_exp | Integer of ImpAst.a_exp
 
-let in_register= Id 0
-let out_register = Id 1
-let first_free_register = Id 2
 let empty_node_set = NodeSet.empty
 let empty_edge_map = NodeMap.empty
 let empty_code_map = NodeMap.empty

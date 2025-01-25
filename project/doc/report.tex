@@ -3,7 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{lmodern}
-\usepackage{amsmath}
+\usepackage{amsmath, systeme}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{amsthm}
@@ -17,7 +17,11 @@
 \usepackage{hyperref}
 \usepackage{parskip}
 \usepackage{svg}
-
+\usepackage{epigraph}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[ligature, inference]{semantic}
+\usepackage{float}   % For H placement
 \lstset{
 	basicstyle=\ttfamily\small,  % Use a smaller monospace font
 	lineskip=-2pt,               % Reduce the vertical space between lines
@@ -41,25 +45,38 @@ The full project can be found on GitHub visiting this \href{https://github.com/w
 The project's main goal is to design and implement aspects of programming languages in OCAML. Two main languages were developed: \verb|miniimp| and \verb|minifun|. For \verb|minifun|, it was developed a typed version \verb|minityfun|. For those languages we first define their ASTs and evaluation functions, then, using OCamllex and Menhir we develop a lexer and a parser for those languages. The formal, ambiguous, grammars can be found \href{https://lceragioli.github.io/pages/Slides/semantics.pdf}{here} and \href{https://lceragioli.github.io/pages/Slides/types.pdf}{here} and the explanations of how the ambiguities were resolved is detailed in \autoref{chap:parsing}.
 \end{abstract}
 
-\section{Project Fragment 3 - Minityfun}
+\section{MiniFun}
+\label{Section::MiniFun}
 
-MiniTyFun is the minimally typed version of
+MiniFun is a simple untyped functional language. A parser was not implemented for MiniFun but instead for its typed counterpart. MiniFun is a single-module library which defines both its AST and an $\verb|eval_fun_ast|$ which takes a value of type $\verb|ast|$, representing a program written in MiniFun, and returns a element of type $\verb|value|$ which can be either a function, since we are in a functional language, or an integer or a boolean.
+The run-time environment is a value of type $\verb|env|$ which is simply a map with strings as keys, so that we can keep track of variables.
+One interesting thing of the evaluation function is that, if it fails to resolve a variable during its execution, (i.e. said variable was not initialized with a $\verb|Let|$ or $\verb|LetFun|$ construct) it fails.
+ 
 
+\section{Minityfun}
 
+MiniTyFun is a typed version of \hyperref[Section::MiniFun]{MiniFun}. 
+
+\subsection{Missing Rules}
+
+The only two rules which differ between MiniTyFun and MiniFun are the rules involving the typed constructs i.e. Anonymous function declaration 
+\begin{figure}[H]
 $\verb|LET FUN|$
 \\
 \[
 \inference[]
 { 
-\Gamma[f \mapsto \tau \texttt{ -> } \tau'] \vdash t' \triangleright \tau''\quad
-\Gamma \vdash t \triangleright \tau'
+	\Gamma[f \mapsto \tau \texttt{ -> } \tau'] \vdash t' \triangleright \tau''\quad
+	\Gamma \vdash t \triangleright \tau'
 }
 {
-\begin{array}{c}
-\Gamma \vdash  \text{ letfun } f x:\tau = t \text{ in } t' \triangleright \tau''
-\end{array}
+	\begin{array}{c}
+		\Gamma \vdash  \text{ letfun } f x:\tau = t \text{ in } t' \triangleright \tau''
+	\end{array}
 }
-\]
+\]	
+\end{figure}
+
 
 $\verb|FUN|$
 \\

@@ -1,8 +1,6 @@
 type mriscfg = Minirisc.scomm Cfg.control_flow_graph
 
-(** The label assigned to the exiting label, i.e. miniRISC will assume, 
-once arrived at this label, the program has ended *)
-val exit_label : Minirisc.label
+val main_label : Minirisc.label
 
 (**
 
@@ -29,7 +27,7 @@ It returns a tuple of 4 elements which are, in order:
 + A {!memory_loc} representing the memory location of the input variable
 + A {!memory_loc} representing the memory location the output variable
 *)
-val translate_cfg_to_target: mriscfg -> int -> (Minirisc.comm List.t * int Minirisc.LabelMap.t * Minirisc.memory_loc * Minirisc.memory_loc)
+val translate_cfg_to_target: mriscfg -> int -> (Minirisc.comm List.t * int Minirisc.LabelMap.t)
 
 (** Utility function which translates a mriscfg into a parsable string of MiniRISC code
 which uses only the limited number of registers given as second argument *)
@@ -45,7 +43,7 @@ If a variable is deemed possibly undefined, this function will fail.
 + The file path {b target_file_path} where the function will write the MiniRISC code.
 *)
 val generate_target_code_file: 
-    ?register_number:(int) ->
+    ?register_number:int ->
     string ->
     check_undefinedness:bool ->
     target_file_path:string -> unit

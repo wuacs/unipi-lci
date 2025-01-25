@@ -10,7 +10,7 @@ let update_in (cfg : Minirisc.scomm Cfg.control_flow_graph) (node : Cfg.node)
   if node == cfg.entry then
     Cfg.NodeMap.add node
       {
-        Data_flow_utils.in_set = RegisterSet.singleton Cfg.in_register;
+        Data_flow_utils.in_set = RegisterSet.singleton Minirisc.in_register;
         out_set = blk.out_set;
       }
       bas

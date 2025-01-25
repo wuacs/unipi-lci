@@ -5,4 +5,3 @@ def main with input in output out as
         out := out * x;
         x := x - 1
     )
-    

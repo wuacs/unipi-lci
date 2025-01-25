@@ -38,7 +38,7 @@ let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap)
       Cfg.NodeMap.add node
         {
           Data_flow_utils.in_set = blk.in_set;
-          out_set = RegSet.singleton Cfg.out_register;
+          out_set = RegSet.singleton Minirisc.out_register;
         }
         bas
     else

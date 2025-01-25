@@ -3,6 +3,10 @@ type label = Label of int [@@unboxed]
 type memory_address = Address of int [@@unboxed]
 type memory_loc = Register of register | Memory of memory_address
 
+let in_register= Id 0
+let out_register = Id 1
+let first_free_register = Id 2
+
 let get_reg_id r = 
   match r with Id l -> l
 

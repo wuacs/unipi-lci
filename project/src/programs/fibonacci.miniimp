@@ -14,3 +14,7 @@ def main with input in output out as
     else (
         out := 1
     )
+        // In mapped to R1
+    // x mapped to R2 in memoryy at 0
+    // out mapped to R0
+    

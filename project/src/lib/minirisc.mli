@@ -28,10 +28,10 @@ module RegisterMap : Map.S with type key = register
 module LabelMap : Map.S with type key = label
 module MemoryMap : Map.S with type key = memory_address
 
+val in_register : register
+val out_register : register
+val first_free_register : register
 val get_reg_id : register -> int 
-
 val get_label_val : label -> int
-
 val get_memory_address : memory_address -> int
-
 val minirisc_command_to_string : comm -> string

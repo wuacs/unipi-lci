@@ -20,12 +20,6 @@ type 'a control_flow_graph = {
   code : 'a list NodeMap.t;
 }
 
-(** Register which represents the input of the program.
-It is used for personalizing printing functions, as in {b *_cfg_to_dot},
-or by particular libraries such as {b data_flow_analysis} *)
-val in_register : Minirisc.register
-val out_register : Minirisc.register
-
 (** Taken a miniimp program returns its control flow graph. *)
 val translate_miniimp :
   ImpAst.program -> ImpAst.miniimp_simple control_flow_graph
