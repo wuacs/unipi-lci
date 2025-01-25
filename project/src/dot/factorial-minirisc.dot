@@ -1,0 +1,13 @@
+digraph G {
+  // Entry node
+  0 [shape=ellipse, color=green];
+  // Exit node
+  3 [shape=ellipse, color=red];
+  0 [label=" \n copy R0 => R3 \n copy R3 => R2 \n loadI  1 => R5 \n copy R5 => R1"];
+  1 [label=" \n copy R2 => R9 \n loadI  2 => R10 \n less R9 R10 => R8 \n not R8 => R7"];
+  2 [label=" \n copy R1 => R14 \n copy R2 => R15 \n mult R14 R15 => R13 \n copy R13 => R1 \n copy R2 => R18 \n subI R18 1 => R17 \n copy R17 => R2"];
+  3 [label=" \n nop"];
+0 -> 1;
+1 -> 2 [label="true"];
+1 -> 3 [label="false"];2 -> 1;
+}

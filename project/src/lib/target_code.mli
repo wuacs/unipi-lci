@@ -1,16 +1,31 @@
-type mriscfg = Minirisc.scomm Cfg.control_flow_graph
+open Minirisc
 
-val main_label : Minirisc.label
+type mriscfg = scomm Cfg.control_flow_graph
+type spill_metric = mriscfg -> register -> int
+val main_label : label
 
 (**
+Implementation of the chaitin-briggs algorithm @see <https://en.wikipedia.org/wiki/Chaitin%27s_algorithm> wikipedia.
 
+- The first argument is the MiniRISC Control Flow Graph which needs to optimize the number of registers used.
+- The second argument is the amount of registers we wish to compress to. 
+- The third argument is the spill metric by which registers will be discriminated when choosing spilling,
+@see <https://en.wikipedia.org/wiki/Spill_metric> wikipedia.
 *)
-val chaitin_briggs_algorithm: mriscfg -> int -> (mriscfg * Minirisc.memory_loc * Minirisc.memory_loc)
+val chaitin_briggs_algorithm: mriscfg -> int -> spill_metric -> (mriscfg * memory_loc * memory_loc)
 
 (**
 Given a MiniRISC's Control Flow Graph it returns a string in the DOT language
 which represents the interfernce graph of the registers defined in the graph. *)
 val interference_graph_dot: mriscfg -> string
+
+(** Simple heuristic which can be fed to {! chaitin_briggs_algorithm} to 
+choose a different metric for spilling.
+
+This metric simply associates the register with the amount of read and write operations 
+done on it throughout whole control flow graph.
+Since write operations require more instructions they are counted twice. *)
+val cost_metric: spill_metric
 
 (** 
 Generates the target code for the given MiniRISC Control Flow Graph using at most {b k} registers.
@@ -27,7 +42,7 @@ It returns a tuple of 4 elements which are, in order:
 + A {!memory_loc} representing the memory location of the input variable
 + A {!memory_loc} representing the memory location the output variable
 *)
-val translate_cfg_to_target: mriscfg -> int -> (Minirisc.comm List.t * int Minirisc.LabelMap.t)
+val translate_cfg_to_target: mriscfg -> int -> (comm List.t * int LabelMap.t)
 
 (** Utility function which translates a mriscfg into a parsable string of MiniRISC code
 which uses only the limited number of registers given as second argument *)

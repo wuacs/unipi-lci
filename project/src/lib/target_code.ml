@@ -5,7 +5,7 @@ open Minirisc
 open Cfg
 
 type mriscfg = scomm control_flow_graph
-
+type spill_metric = mriscfg -> register -> int
 type vertex = {id: register; degree: int; cost: int; color: int}
 
 let first (f, _, _) = f
@@ -50,46 +50,26 @@ the most interference, which is what having an high degree means.
 module VertexSetBySpillMetric = Set.Make(struct
   type t = vertex
   let compare v1 v2 = 
-    let degree1 = v1.degree in 
-    let degree2 = v2.degree in
-    if (degree1 = 0) && (degree2 = 0) then
+    let cost1 = v1.cost in
+    let cost2 = v2.cost in
+    if cost1 = cost2 then 
       compare v1.id v2.id
-    else if (degree1 = 0) then
-      -1
-    else if (degree2 = 0) then 
-      1
     else
-      let cost1 = (v1.cost / degree1) in
-      let cost2 = (v2.cost / degree2) in
-      if cost1 = cost2 then 
-        compare v1.id v2.id
-      else
-        compare cost1 cost2 
+      compare cost1 cost2 
 end)
 
-(**
-let print_vertexsetbydegree set = 
-  VertexSetByDegree.iter (fun x -> printf "vertex %d has degree %d\n" (get_reg_id x.id) x.degree) set;
-  print_string ("Number of registers in degree set: " ^ (string_of_int (VertexSetByDegree.cardinal set)))
-
-let print_vertexsetbymetric set = 
-  VertexSetBySpillMetric.iter (fun x -> printf "vertex %d has metric value %d\n" (get_reg_id x.id) x.cost) set;
-  print_string ("Number of registers in metric set: " ^ (string_of_int (VertexSetBySpillMetric.cardinal set)))
-
-let print_vertexsetbycolor set = 
-  VertexSetByColor.iter (fun x -> printf "vertex %d has color %d\n" (get_reg_id x.id) x.color) set;
-  print_string ("Number of registers in color set: " ^ (string_of_int (VertexSetByColor.cardinal set)))
-*)
-
-(** The cost of a register is the amount of read operations done on it *)
-let compute_cost_register (cfg : mriscfg) (reg: register): int = 
+let cost_metric (cfg : mriscfg) (reg: register): int = 
   NodeMap.fold (fun _ codeblk curr -> curr + 
   (List.fold_left 
   (fun acc instruction -> 
     acc + 
-    (match (RegisterSet.find_opt reg (Data_flow_analysis.Utils.extract_read_registers instruction)) with
-          | Some _ -> 1
-          | _ -> 0)) 0 codeblk)) cfg.code 0
+    (match 
+    (RegisterSet.find_opt reg (Data_flow_analysis.Utils.extract_read_registers instruction)) with
+      | Some _ -> 1
+      | _ -> 0) +
+    (match (Data_flow_analysis.Utils.extract_written_register instruction) with
+    | Some x -> if x = reg then 2 else 0
+    | _ -> 0)) 0 codeblk)) cfg.code 0
 
 (** Removes a vertex from a vertex set ordered by degree. Such set is used
 for determining the current state of interference, i.e. the interference graph
@@ -189,13 +169,13 @@ let rec chaitin_briggs_step1
       if (v.degree < k) then
         let () = VertexStack.push v stack in
         (chaitin_briggs_step1 interference_graph (RegisterSet.remove v.id registers_left) (remove_vertex interference_graph gi v.id) gh stack k current_coloring spilled_registers)
-      else 
+      else
         (chaitin_briggs_step2 interference_graph registers_left gi gh stack k current_coloring spilled_registers)
     | None -> (chaitin_briggs_step3 interference_graph registers_left gi gh stack k current_coloring spilled_registers)
 and chaitin_briggs_step2
   (interference_graph : RegisterSet.t RegisterMap.t) 
   (registers_left: RegisterSet.t)
-  (gi: VertexSetByDegree.t) 
+  (gi: VertexSetByDegree.t)
   (gh: VertexSetBySpillMetric.t)
   (stack : VertexStack.t) 
   (k : int)
@@ -242,7 +222,11 @@ and chaitin_briggs_step3
                   | false -> (acc, b))
       | true -> (acc, b)) current_coloring (0, false)) in
     if color < k then
-      chaitin_briggs_step3 interference_graph registers_left gi gh stack k (VertexSetByColor.add {v with color = color } (VertexSetByColor.remove v current_coloring)) spilled_registers
+      chaitin_briggs_step3 
+      interference_graph 
+      registers_left gi gh stack k 
+      (VertexSetByColor.add {v with color = color } 
+      (VertexSetByColor.remove v current_coloring)) spilled_registers
     else
       let spilled_id = (flag_spilled_register v.id) in 
       chaitin_briggs_step1 interference_graph (RegisterSet.remove v.id registers_left)
@@ -276,6 +260,7 @@ number of available register is not enough to spill registers (because, for exam
 or other choices this function fails with)
 *)
 let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (register_number : int) =
+  RegisterSet.iter (fun x -> Printf.printf "Spilled register %d\n" (get_reg_id x)) spilled_registers;
   let liveness_result = Data_flow_analysis.liveness_analysis cfg in
   let spill_register_local
   (register: register) (blk: node) (cfg : mriscfg) (memory_location: memory_address): scomm list =
@@ -291,7 +276,7 @@ let apply_spilling_to_cfg  (cfg : mriscfg) (spilled_registers : RegisterSet.t) (
           if RegisterSet.mem register read then 
             begin
             match RegisterSet.choose_opt available_registers with
-            | Some r -> 
+            | Some r ->
               ([Minirisc.LoadI(get_memory_address memory_location, r); 
                 Minirisc.Load(r, r); 
                 replace_register instruction (fun x -> if x = register then r else x)] @ new_list, Some r)
@@ -377,12 +362,12 @@ in arbitrary locations, so that one can generate working target code once
 by loading the wanted values in the input memory location and extracting the
 output value by reading from the output location.
 *)
-let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : (mriscfg * memory_loc * memory_loc) = 
+let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) (heuristic : spill_metric) : (mriscfg * memory_loc * memory_loc) = 
     if (k < 4) then failwith "Register number must be at least 4" else
     let uncolored_register = Id 10000 in
     let g = compute_live_ranges cfg in
     let (vertexesByDegree, vertexesByMetric, vertexesByColor) = RegisterMap.fold (fun reg neighbors (setByDegree, setByMetric, setByColor) -> 
-      let vertex = {id = reg; degree = (RegisterSet.cardinal neighbors); cost = (compute_cost_register cfg reg); color = (get_reg_id uncolored_register)} in
+      let vertex = {id = reg; degree = (RegisterSet.cardinal neighbors); cost = (heuristic cfg reg); color = (get_reg_id uncolored_register)} in
       (VertexSetByDegree.add vertex setByDegree, VertexSetBySpillMetric.add vertex setByMetric, VertexSetByColor.add vertex setByColor))
     g (VertexSetByDegree.empty, VertexSetBySpillMetric.empty, VertexSetByColor.empty) in
     let (colors, spilled_registers) = chaitin_briggs_step1 g (Data_flow_analysis.Utils.get_top cfg) vertexesByDegree vertexesByMetric (VertexStack.create ()) (k-2) vertexesByColor RegisterSet.empty in
@@ -401,6 +386,7 @@ let chaitin_briggs_algorithm (cfg : mriscfg) (k : int) : (mriscfg * memory_loc *
     in
     (spilled_cfg, input_location, output_location)
 
+    
 let interference_graph_dot (cfg : mriscfg) : string = 
   let g = compute_live_ranges cfg in
   let other_registers start set =
@@ -519,7 +505,7 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int):
           end
       end
       in
-      let (optimized_cfg, input_location, output_location) = (chaitin_briggs_algorithm cfg k) in
+      let (optimized_cfg, input_location, output_location) = (chaitin_briggs_algorithm cfg k cost_metric) in
       let code_injected = 
         let updated_entry = NodeMap.add optimized_cfg.entry ((generate_input_instructions input_location first_free_register)@(NodeMap.find optimized_cfg.entry optimized_cfg.code)) optimized_cfg.code in
         NodeMap.add optimized_cfg.exit ((NodeMap.find optimized_cfg.exit updated_entry)@(generate_output_instructions output_location first_free_register)) updated_entry
@@ -629,7 +615,6 @@ let eval_risc_cfg cfg ~registers:k ~value:input =
 
   (* Function to iterate over instructions *)
   let rec run pc memory registers =
-    Printf.printf "pc is %d\n" pc;
     if (pc <> (Array.length array_instructions)) then
       let instruction = array_instructions.(pc) in
       let (memory, registers, pc) = execute_instruction instruction memory registers pc in

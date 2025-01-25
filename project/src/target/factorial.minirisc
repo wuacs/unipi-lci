@@ -1,39 +1,37 @@
-main:	copy 0 => 1
-loadI  0 => 2
-store 1 => 2
-loadI  1 => 0
-copy 0 => 1
-loadI  1 => 2
-store 1 => 2
+main:	copy R0 => R1
+loadI  1 => R0
+copy R0 => R2 
+loadI  2 => R3 
+store R2 => R3 
 jump l1
-l1:	loadI  0 => 0
-load 0 => 0
-copy 0 => 1
-loadI  2 => 0
-less 1 0 => 0
-not 0 => 0
+l1:	copy R1 => R0
+loadI  1 => R2
+store R0 => R2
+loadI  2 => R0
+loadI  1 => R2
+load R2 => R2
+less R2 R0 => R0
+not R0 => R0
 cjump r0 l2 l3
-l2:	loadI  1 => 0
-load 0 => 0
-copy 0 => 1
-loadI  0 => 2
-load 2 => 2
-copy 2 => 0
-mult 1 0 => 0
-copy 0 => 1
-loadI  1 => 2
-store 1 => 2
-loadI  0 => 1
-load 1 => 1
-copy 1 => 0
-subI 0 1 => 0
-copy 0 => 1
-loadI  0 => 2
-store 1 => 2
+l2:	loadI  2 => R2
+load R2 => R2
+copy R2 => R0
+loadI  0 => R2
+store R0 => R2
+copy R1 => R0
+loadI  0 => R2
+load R2 => R2
+mult R2 R0 => R0
+copy R0 => R2
+loadI  2 => R3
+store R2 => R3
+copy R1 => R0
+subI R0 1 => R0
+copy R0 => R1
 jump l1
 l3:	nop
-loadI  1 => 2
-load 2 => 2
-copy 2 => 1
+loadI  2 => R2
+load R2 => R2
+copy R2 => R1
 jump l-1
 l-1:	nop

@@ -6,7 +6,7 @@ let translate_and_merge () =
   | Some prog ->
       let oc = open_out ("./dot/"^ namefile ^ "-merged.dot") in
       let (optimized_cfg, _, _) = (Target_code.chaitin_briggs_algorithm 
-      (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog)) (int_of_string reg_num)) in
+      (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog)) (int_of_string reg_num) (Target_code.cost_metric)) in
       Printf.fprintf oc "%s" 
       (Cfg.minirisc_cfg_to_dot
       (optimized_cfg));

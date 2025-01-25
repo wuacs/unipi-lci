@@ -1,20 +1,26 @@
 (executable
-(package cfg)
-(public_name merging)
-(name merging)
-(libraries target_code))
+ (package cfg)
+ (public_name cfg_dot)
+ (name cfg_dot)
+ (libraries cfg miniimp target_code))
 
 (executable
  (package cfg)
+ (public_name main)
+ (name main)
+ (libraries cfg data_flow_analysis))
+
+(executable
+ (package target_code)
  (public_name target)
  (name target)
  (libraries target_code))
 
 (executable
- (package cfg)
- (public_name cfg)
- (name main)
- (libraries cfg data_flow_analysis))
+(package target_code)
+(public_name merging)
+(name merging)
+(libraries target_code))
 
 (executable
  (package data_flow_analysis)
