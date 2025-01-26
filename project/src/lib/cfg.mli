@@ -1,8 +1,9 @@
+open Miniimp.ImpAst
+
 type node = Label of int [@@unboxed]
 
 module NodeSet : Set.S with type elt = node
 module NodeMap : Map.S with type key = node
-module ImpAst = Miniimp.ImpAst
 
 (** A Node may have
 + one outgoing edge, represented by `Uncond`
@@ -22,7 +23,7 @@ type 'a control_flow_graph = {
 
 (** Taken a miniimp program returns its control flow graph. *)
 val translate_miniimp :
-  ImpAst.program -> ImpAst.miniimp_simple control_flow_graph
+program -> miniimp_simple control_flow_graph
 
 (** 
 Converts a Miniimp's control flow graph in a MiniRISC's control flow graph, which assumes
@@ -30,14 +31,14 @@ an infinite number of registers. For optimization, see the {b target_code} libra
 optimizes the control flow graph to be usable on machines with limited registers. 
 *)
 val miniimp_cfg_to_minirisc :
-  ImpAst.miniimp_simple control_flow_graph -> Minirisc.scomm control_flow_graph
+  miniimp_simple control_flow_graph -> Minirisc.scomm control_flow_graph
 
 (**
 This function returns a string in the Dot language,
 representing the MiniImp control flow graph in input.
 @see <https://en.wikipedia.org/wiki/DOT_(graph_description_language)>
 *)
-val miniimp_cfg_to_dot : ImpAst.miniimp_simple control_flow_graph -> string
+val miniimp_cfg_to_dot : miniimp_simple control_flow_graph -> string
 
 (**
 This function returns a string in the Dot language, 

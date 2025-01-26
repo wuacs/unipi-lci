@@ -1,5 +1,6 @@
-module ImpAst = Miniimp_ast
 open Miniimp_ast
+
+module ImpAst = Miniimp_ast
 
 exception IllFormedAST of string
 

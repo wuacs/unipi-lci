@@ -23,3 +23,6 @@
 
  (package
  (name minirisc))
+
+ (package
+ (name deque))

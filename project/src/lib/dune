@@ -1,9 +1,13 @@
-; For lexing and parsing
-
 (ocamllex miniimp_lexer)
+
+(ocamllex minityfun_lexer)
 
 (menhir
  (modules miniimp_parser)
+ (explain true))
+
+(menhir
+ (modules minityfun_parser)
  (explain true))
 
 (library
@@ -46,4 +50,10 @@
 (library
  (package minityfun)
  (name minityfun)
- (modules minityfun))
+ (modules minityfun minityfun_ast minityfun_lexer minityfun_parser)
+ (libraries deque))
+
+(library
+(public_name deque)
+(name deque)
+(modules deque))
