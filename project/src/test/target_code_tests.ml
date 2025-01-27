@@ -2,9 +2,9 @@ open Alcotest
 
 let fibonacci n = 
   let rec helper v1 v2 n = 
-    if n <= 2 then v2 else helper v2 (v1 + v2) (n-1)
+    if n <= 1 then v2 else helper v2 (v1 + v2) (n-1)
   in
-    helper 1 1 n
+    helper 1 0 n
 
 let factorial n = 
   let rec help n t = 

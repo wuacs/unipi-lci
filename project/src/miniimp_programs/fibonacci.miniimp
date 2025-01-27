@@ -2,8 +2,8 @@ def main with input in output out as
     x := in;
     out := 0;
     if not x < 2 then (
-        out := 1;
-        second := 0;
+        out := 0;
+        second := 1;
         while not x < 2 do (
             temp := out;
             out := out + second;
@@ -12,5 +12,5 @@ def main with input in output out as
         )
     )
     else (
-        out := 1
+        out := 0
     )
