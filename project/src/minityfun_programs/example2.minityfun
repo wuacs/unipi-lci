@@ -1,0 +1,4 @@
+letfun f x : int -> (int -> int) = 
+    fun y : int => x + y
+in
+    f 3

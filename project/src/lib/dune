@@ -50,8 +50,7 @@
 (library
  (package minityfun)
  (name minityfun)
- (modules minityfun minityfun_ast minityfun_lexer minityfun_parser)
- (libraries deque))
+ (modules minityfun minityfun_ast minityfun_lexer minityfun_parser))
 
 (library
 (public_name deque)

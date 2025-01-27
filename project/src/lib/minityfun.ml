@@ -74,7 +74,7 @@ let type_check (ast : ast) : tau option =
               (update_type_bind pname domain
                 (update_type_bind fname ptype env))
             in  
-            if (compatible domain range) <> true then 
+            if (compatible range t) <> true then 
               raise (TypeError (Printf.sprintf "Function %s was declared to return type %s but returns %s" fname (get_string_of_type range) (get_string_of_type t)))
             else          
               let t1, re1 = rec_type_check a2 re in
@@ -125,7 +125,6 @@ let type_check (ast : ast) : tau option =
   in
   try Some (fst (rec_type_check ast Env_map.empty))
   with TypeError msg -> (print_endline msg; None)
-  
 
 let eval (ast : ast) =
   let update_env (var : var) value (env : value_env) = Env_map.add var value env in
@@ -179,11 +178,30 @@ let eval (ast : ast) =
   in
   rec_eval ast Env_map.empty
 
+let parse_with_errors lexbuf =
+  try
+    let x = Minityfun_parser.prog Minityfun_lexer.read lexbuf in
+    Some x
+  with
+  | Parsing.Parse_error ->
+      Printf.eprintf "Syntax error at line %d, position %d\n"
+        lexbuf.lex_curr_p.pos_lnum
+        (lexbuf.lex_curr_p.pos_cnum - lexbuf.lex_curr_p.pos_bol);
+      None
+  | e ->
+      Printf.eprintf "Unexpected error: %s\n" (Printexc.to_string e);
+      None
+        
 let interpret_from_file (filename: string) : value * tau = 
   let ic = open_in filename in
   Fun.protect ~finally:(fun _ -> close_in ic) 
   (fun _ -> 
-    let x = (Minityfun_parser.prog Minityfun_lexer.read (Lexing.from_channel ic)) in
-    (match type_check x with 
-                | None -> failwith "type checking failed"
-                | Some(t) -> (eval x, t)))
+    match parse_with_errors (Lexing.from_channel ic) with
+    | Some ast -> 
+      begin
+        match type_check ast with
+        | None -> failwith "Type checking failed"
+        | Some t -> (eval ast, t)
+      end
+    | None -> failwith "Error while parsing")
+  

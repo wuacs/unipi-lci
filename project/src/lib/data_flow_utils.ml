@@ -62,7 +62,7 @@ let defined_registers (cfg : Minirisc.scomm Cfg.control_flow_graph)
       (fun acc x -> match extract_written_register x with
       | Some r -> RegisterSet.add r acc 
       | None -> acc) RegisterSet.empty t)
-    | None -> failwith "ciao"
+    | None -> failwith "Error in defined_registes function, Ill-formed CFG"
 
 let used_registers (cfg : mriscfg) (node : node) : RegSet.t =
   let code_blk = Nodemap.find node cfg.code in

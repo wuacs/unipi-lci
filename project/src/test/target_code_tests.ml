@@ -44,7 +44,7 @@ let test_sumnaturals () =
 let test_power2 () =
   compute_and_test ~filename:"power2.miniimp" ~oracle:power2 ~tcs:20
 
-let () = run "Fibonacci in MiniRISC test" [
+let () = run "" [
   "Target Code Tests",
   [test_case "test_fibonacci" `Quick test_fibonacci;
    test_case "test_factorial" `Quick test_factorial;

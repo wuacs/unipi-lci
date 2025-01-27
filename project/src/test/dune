@@ -5,3 +5,7 @@
 (test
  (name target_code_tests)
  (libraries target_code miniimp alcotest))
+
+(test
+ (name tyfun_tests)
+ (libraries minityfun alcotest))

@@ -1,0 +1,5 @@
+let f = 
+    fun x : int =>
+        fun y : int => x + y
+in
+    f 3
