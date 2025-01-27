@@ -1,0 +1,5 @@
+let f = 
+    (let a = 1 in
+    (fun y : int => y + a))
+in
+(let a = 2 in f 4)
