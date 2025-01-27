@@ -46,7 +46,6 @@ _opam/
 *.idx
 *.ilg
 *.ind
-*.out
 *.url
 *.svn
 *.toc

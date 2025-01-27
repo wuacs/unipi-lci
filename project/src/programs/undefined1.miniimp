@@ -1,8 +1,0 @@
-def main with input in output out as
-    y := k + 2;
-    x := y + in;
-    while x < 10 do (
-        x := x + 2;
-        y := x + 2
-    );
-    out := x + 2

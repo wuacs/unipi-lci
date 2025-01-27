@@ -1,3 +1,0 @@
-letfun factorial n:int = 
-    if n < 2 then (factorial (n-1) and (factorial (n-2))) else 
-    true in (factorial 5)

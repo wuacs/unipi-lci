@@ -1,7 +1,0 @@
-def main with input in output out as
-    x := in;
-    out := 1;
-    while not x < 2 do (
-        out := out * x;
-        x := x - 1
-    )
