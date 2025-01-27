@@ -60,8 +60,10 @@ let type_check (ast : ast) : tau option =
   let rec rec_type_check (ast : ast) (env : tau Env_map.t) : tau * tau Env_map.t =
     match ast with
     | Fun (pname, ptype, a1) ->
-        let t, re = rec_type_check a1 (update_type_bind pname ptype env) in
-        (t, remove_type_bind pname re)
+      begin
+          let t, re = rec_type_check a1 (update_type_bind pname ptype env) in
+          (Closure_t(ptype, t), remove_type_bind pname re)
+      end
     | LetFun (fname, pname, ptype, a1, a2) ->
       begin
         match ptype with
@@ -82,7 +84,8 @@ let type_check (ast : ast) : tau option =
       end
     | Let (pname, a1, a2) ->
         let t, re = rec_type_check a1 env in
-        rec_type_check a2 (update_type_bind pname t (unify re env))
+        let t1, re1 = rec_type_check a2 (update_type_bind pname t (unify re env)) in
+        (t1, remove_type_bind pname re1)
     | App (a1, a2) -> (
         let t, re = rec_type_check a2 env in
         let t1, re1 = rec_type_check a1 (unify re env) in

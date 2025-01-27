@@ -3,7 +3,7 @@ open Minityfun
 let execute_miniimp_from_file () = 
   let filename = Sys.argv.(2) in
   let (v, t) = interpret_from_file (filename) in
-  Printf.printf "Evaluation of %s produced %s of type %s " (filename) (TyFunAst.get_string_of_value v) (TyFunAst.get_string_of_type t) 
+  Printf.printf "Evaluation of %s produced %s of type %s \n" (filename) (TyFunAst.get_string_of_value v) (TyFunAst.get_string_of_type t) 
 
 let info_string = 
 "To use executable tyfun pass one of the following pattern of arguments:\n

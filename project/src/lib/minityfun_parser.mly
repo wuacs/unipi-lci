@@ -23,7 +23,7 @@ term:
     | LET ; t = VAR ; EQUAL b = term ; IN b1 = term {Let(t, b, b1)} 
     | LETFUN ; fname = VAR ; pname = VAR ; TYPE_SEP ; t = function_type; EQUAL ; body = term IN context = term {LetFun(fname, pname, t, body, context)}
     | IF cond = term THEN then_body = term ELSE else_body = term {If(cond, then_body, else_body)}
-    | FUN ; x = VAR ; TYPE_SEP ; t = function_type FUN_ARROW body = term {Fun(x, t, body)} 
+    | FUN ; x = VAR ; TYPE_SEP ; t = generic_type FUN_ARROW body = term {Fun(x, t, body)} 
     | o = operation {o}
 operation:
     | t1 = operation; o = op; t2 = basic_term {Op(t1, o, t2)}
@@ -43,11 +43,12 @@ basic_term:
     | LEFT_PAR t = term RIGHT_PAR {t}
 unary_op:
     | LEFT_PAR MINUS i = INT RIGHT_PAR {Val(Integer(-i))} 
-function_type:
-    | domain = typing_domain TYPE_ARROW range = typing_domain {Closure_t(domain, range)}
-typing_domain:
-    | LEFT_PAR t = function_type RIGHT_PAR {t}
+generic_type:
+    | ft = function_type {ft}
     | bt = basic_typing {bt}
+function_type:
+    | domain = basic_typing TYPE_ARROW range = basic_typing {Closure_t(domain, range)}
 basic_typing:
     | INT_TYPE {Integer_t}
     | BOOL_TYPE {Boolean_t}
+    | LEFT_PAR t = function_type RIGHT_PAR {t}
