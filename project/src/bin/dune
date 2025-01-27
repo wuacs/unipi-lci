@@ -2,7 +2,7 @@
  (package cfg)
  (public_name dot)
  (name dot)
- (libraries cfg miniimp target_code))
+ (libraries cfg miniimp target_code data_flow_analysis))
 
 (executable
  (package target_code)
