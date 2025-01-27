@@ -22,7 +22,7 @@ let power2 n =
     helper n 1 
 
 let compute_and_test ~filename ~oracle ~tcs =
-  let input_dir = Sys.getcwd() ^ "/../../../programs/" in
+  let input_dir = Sys.getcwd() ^ "/../../../miniimp_programs/" in
   let inputs = List.init tcs (fun x -> x) in
   List.iter (fun x ->
     Alcotest.check

@@ -30,7 +30,7 @@ type ast =
 (** Type representing the type of a term. {b Not sure about naming conventions?} *)
 and tau = Integer_t | 
           Boolean_t |
-          Closure_t of tau list
+          Closure_t of tau * tau
 (** Storable first class values. Integers, Booleans, Recursive closures, Non-Recursive closures *)
 and value =
   | Integer of int
@@ -54,14 +54,14 @@ let rec get_string_of_type =
   function
   | Integer_t -> "int"
   | Boolean_t -> "boolean"
-  | Closure_t(q) -> snd (List.fold_left (fun (i, str) x -> if (i <> 0) then (i, str ^ " -> " ^ (get_string_of_type x)) else (i+1, get_string_of_type x)) (0, "") q)
-    
+  | Closure_t(domain, codomain) -> (Printf.sprintf " ( %s -> %s ) " (get_string_of_type domain) (get_string_of_type codomain))
+
 let compatible x y =
   let rec helper x y = 
   match (x, y) with
   | (Integer_t, Integer_t) -> true
   | (Boolean_t, Boolean_t) -> true
-  | (Closure_t(t), Closure_t(t1)) -> List.fold_left (fun acc (a, b) -> acc && (helper a b)) true (List.combine t t1)
+  | (Closure_t(t1, t2), Closure_t(t3, t4)) -> (helper t1 t3) && (helper t2 t4)
   | _ -> false
   in 
   helper x y

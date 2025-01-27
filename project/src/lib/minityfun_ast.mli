@@ -28,7 +28,7 @@ type ast =
 (** Type representing the type of a term. {b Not sure about naming conventions?} *)
 and tau = Integer_t | 
           Boolean_t |
-          Closure_t of tau list
+          Closure_t of tau * tau
 (** Storable first class values. Integers, Booleans, Recursive closures, Non-Recursive closures *)
 and value =
   | Integer of int

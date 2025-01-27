@@ -56,11 +56,6 @@ let type_of_literal (value : value) : tau =
   | Boolean _ -> Boolean_t
   | _ -> failwith "Only integer and boolean literals are allowed in this context."
 
-let extract_head_function_type (t : tau) : tau = 
-  match t with 
-  | Closure_t(l) -> (List.hd l)
-  | _ -> failwith "??"
-
 let type_check (ast : ast) : tau option =
   let rec rec_type_check (ast : ast) (env : tau Env_map.t) : tau * tau Env_map.t =
     match ast with
@@ -70,20 +65,20 @@ let type_check (ast : ast) : tau option =
     | LetFun (fname, pname, ptype, a1, a2) ->
       begin
         match ptype with
-        | Closure_t(l) -> 
+        | Closure_t(domain, range) -> 
           begin
             let t, re =
             rec_type_check a1
-              (update_type_bind pname (extract_head_function_type ptype)
+              (update_type_bind pname domain
                 (update_type_bind fname ptype env))
-            in
-            if compatible t (Closure_t (List.tl l)) then
+            in  
+            if (compatible domain range) <> true then 
+              raise (TypeError (Printf.sprintf "Function %s was declared to return type %s but returns %s" fname (get_string_of_type range) (get_string_of_type t)))
+            else          
               let t1, re1 = rec_type_check a2 re in
               (t1, remove_type_bind fname re1)
-            else
-              failwith "???"
           end 
-        | _ -> raise (TypeError ("function has not a function type ??"))
+        | _ -> raise (TypeError ("With a LetFun syntax you need to specify the type of a function"))
       end
     | Let (pname, a1, a2) ->
         let t, re = rec_type_check a1 env in
@@ -92,12 +87,12 @@ let type_check (ast : ast) : tau option =
         let t, re = rec_type_check a2 env in
         let t1, re1 = rec_type_check a1 (unify re env) in
         match t1 with
-        | Closure_t (x) -> 
-          if (compatible (Closure_t (List.tl x)) t) 
+        | Closure_t (d, c) -> 
+          if (compatible d t <> true) 
             then raise (TypeError
               (Printf.sprintf "Domain does not correspond, expected a %s instead got a %s"
-              (get_string_of_type t1) (get_string_of_type t)))
-            else ((Closure_t (List.tl x)), re1)
+              (get_string_of_type d) (get_string_of_type t)))
+            else (c, re1)
         | t -> raise (TypeError (Printf.sprintf "Tried to apply to type %s" (get_string_of_type t))))
     | Op (a1, op, a2) ->
         let t, re = rec_type_check a1 env in
