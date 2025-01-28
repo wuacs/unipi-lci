@@ -316,7 +316,8 @@ let reserve_opt_variable_register
   | Some _ -> map
   | None -> StringMap.add var reserved_register map
 
-let convert_minirisc_bop (register : Minirisc.register) (input : 'a * 'a)
+let convert_minirisc_bop
+    (register : Minirisc.register) (input : 'a * 'a)
     (id_ram : register StringMap.t)
     (helper_fun :
       Minirisc.register ->

@@ -27,7 +27,8 @@ term:
     | o = operation {o}
 operation:
     | t = additive_expr {t}
-    | t = operation t1 = basic_term {App(t, t1)}
+    | t = operation t1 = literal {App(t, t1)}
+    | t = operation LEFT_PAR t1 = term RIGHT_PAR {App(t, t1)}
 additive_expr:
     | t1 = mulitplicative_expr; o = additive_op; t2 = additive_expr {Op(t1, o, t2)}
     | me = mulitplicative_expr {me}
@@ -37,16 +38,18 @@ additive_expr:
     | LESS {Less}
     | AND {And}
 mulitplicative_expr:
-    | me = mulitplicative_expr MUL; t2 = basic_term {Op(me, Mul, t2)}
+    | me = mulitplicative_expr; MUL; t2 = basic_term {Op(me, Mul, t2)}
     | b = basic_term {b}
 basic_term:
-    | b = BOOL {Val(Boolean b)}
-    | v = VAR {Var(v)}  
-    | i = INT {Val(Integer i)}
-    | i = unary_op {i}
+    | l = literal {l}
+    | i = negative_integer {i}
     | LEFT_PAR t = term RIGHT_PAR {t}
-unary_op:
-    | LEFT_PAR MINUS i = INT RIGHT_PAR {Val(Integer(-i))} 
+%inline literal:
+    | b = BOOL {Val(Boolean b)}
+    | v = VAR {Var(v)}
+    | i = INT {Val(Integer i)}
+%inline negative_integer:
+    | MINUS; i = INT {Val(Integer (-i))}
 generic_type:
     | ft = function_type {ft}
     | bt = basic_typing {bt}
