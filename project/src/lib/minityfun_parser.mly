@@ -26,15 +26,19 @@ term:
     | FUN ; x = VAR ; TYPE_SEP ; t = generic_type FUN_ARROW body = term {Fun(x, t, body)} 
     | o = operation {o}
 operation:
-    | t1 = operation; o = op; t2 = basic_term {Op(t1, o, t2)}
+    | t = additive_expr {t}
     | t = operation t1 = basic_term {App(t, t1)}
-    | b = basic_term {b}
-%inline op:
+additive_expr:
+    | t1 = mulitplicative_expr; o = additive_op; t2 = additive_expr {Op(t1, o, t2)}
+    | me = mulitplicative_expr {me}
+%inline additive_op:
     | PLUS {Plus}
     | MINUS {Minus}
-    | MUL {Mul}
     | LESS {Less}
     | AND {And}
+mulitplicative_expr:
+    | me = mulitplicative_expr MUL; t2 = basic_term {Op(me, Mul, t2)}
+    | b = basic_term {b}
 basic_term:
     | b = BOOL {Val(Boolean b)}
     | v = VAR {Var(v)}  
