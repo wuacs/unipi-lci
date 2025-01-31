@@ -11,7 +11,7 @@ let check_for_undefinedness () =
       | Some prog ->
           let result =
             check_for_undefinedness
-              (miniimp_cfg_to_minirisc (translate_miniimp prog))
+              (miniimp_cfg_to_minirisc (translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)
           in
           print_string
             (if result then "Possible undefined variable\n"

@@ -395,12 +395,12 @@ let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register)
               (fun x y z -> [ Minirisc.Rtoi (Minirisc.AddI, x, y, z) ])
               (fun x y z -> [ Minirisc.Rtor (Minirisc.Add, x, y, z) ])
         | ImpAst.Substitue s ->
-            let id_ram = reserve_opt_variable_register vars s register in
+            let vars = reserve_opt_variable_register vars s register in
             ( [
-                Minirisc.Rury (Minirisc.Copy, StringMap.find s id_ram, register);
+                Minirisc.Rury (Minirisc.Copy, StringMap.find s vars, register);
               ],
               register,
-              id_ram )
+              vars )
         | ImpAst.Aval n -> ([ Minirisc.LoadI (n, register) ], register, vars))
     | _ -> failwith "Called arithmetic helper function passing a boolean"
   in
@@ -453,7 +453,10 @@ let convert_miniimp_boolean_to_minirisc (available : Minirisc.register)
   in
   helper_boolean available (Boolean expr) vars
 
-let miniimp_cfg_to_minirisc (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
+let miniimp_cfg_to_minirisc 
+  (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
+  ~input_variable:input_var
+  ~output_variable:output_var
     : Minirisc.scomm control_flow_graph =
   let map_simple_imp_to_simple_risc (stmt : ImpAst.miniimp_simple)
       (available : Minirisc.register) (vars : register StringMap.t) :
@@ -501,4 +504,4 @@ let miniimp_cfg_to_minirisc (imp_cfg : ImpAst.miniimp_simple control_flow_graph)
   in
   create_cfg imp_cfg.nodes imp_cfg.edges imp_cfg.entry imp_cfg.exit
     (code_translator first_free_register
-       (StringMap.add "out" out_register (StringMap.singleton "in" in_register)))
+       (StringMap.add output_var out_register (StringMap.singleton input_var in_register)))

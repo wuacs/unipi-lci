@@ -26,9 +26,12 @@ val translate_miniimp : program -> miniimp_simple control_flow_graph
 (** Taken a {!Miniimp.ImpAst.program} and returns its control-flow graph. *)
 
 val miniimp_cfg_to_minirisc :
-  miniimp_simple control_flow_graph -> scomm control_flow_graph
-(** Converts a Miniimp's control flow graph in a MiniRISC's control flow graph,
-    which assumes an infinite number of registers. For optimization, see the
+  miniimp_simple control_flow_graph -> 
+  input_variable:string -> output_variable:string -> scomm control_flow_graph
+(** This function converts a Miniimp's control flow graph in a MiniRISC's control flow graph,
+    which assumes an infinite number of registers. 
+    The two strings in input are the input and output variables of the miniimp program.
+    For optimization, see the
     {b target_code} library which optimizes the control flow graph to be usable
     on machines with limited registers. *)
 

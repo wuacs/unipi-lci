@@ -806,7 +806,7 @@ let generate_target_code_file ?(register_number = 4) miniimp_file_path
           (Lexing.from_channel (open_in miniimp_file_path))
       with
       | Some imp_prog ->
-          let risc_cfg = miniimp_cfg_to_minirisc (translate_miniimp imp_prog) in
+          let risc_cfg = miniimp_cfg_to_minirisc (translate_miniimp imp_prog) ~input_variable:imp_prog.input ~output_variable:imp_prog.output in
           if
             check_undefinedness
             && Data_flow_analysis.check_for_undefinedness risc_cfg
@@ -832,7 +832,7 @@ let compile_and_run_imp_from_file ?(register_number = 4) miniimp_file_path
     (fun _ ->
       match Miniimp.parse_with_errors (Lexing.from_channel in_channel) with
       | Some imp_prog ->
-          let risc_cfg = miniimp_cfg_to_minirisc (translate_miniimp imp_prog) in
+          let risc_cfg = miniimp_cfg_to_minirisc (translate_miniimp imp_prog) ~input_variable:imp_prog.input ~output_variable:imp_prog.output in
           if
             check_undefinedness
             && Data_flow_analysis.check_for_undefinedness risc_cfg

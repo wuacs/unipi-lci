@@ -37,7 +37,7 @@ let eval_target_code () =
       | Some prog ->
           Printf.printf "Value is: %d\n"
             (eval_risc_cfg
-               (miniimp_cfg_to_minirisc (translate_miniimp prog))
+               (miniimp_cfg_to_minirisc (translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)
                ~registers:10
                ~value:(int_of_string input_value))
       | None -> print_string "Error while parsing")

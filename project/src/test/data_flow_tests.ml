@@ -27,7 +27,7 @@ let test_defined_analysis () =
                let expected_bool = bool_of_string expected_output in
                let actual_bool =
                  Data_flow_analysis.check_for_undefinedness
-                   (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))
+                   (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)
                in
                Alcotest.check Alcotest.bool input_file expected_bool actual_bool
              with End_of_file ->

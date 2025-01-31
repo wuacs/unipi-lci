@@ -30,7 +30,7 @@ let get_cfg_dot_of_minirisc_from_miniimp () =
             (fun _ ->
               Printf.fprintf oc "%s"
                 (minirisc_cfg_to_dot
-                   (miniimp_cfg_to_minirisc (translate_miniimp prog))))
+                   (miniimp_cfg_to_minirisc (translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)))
       | None -> failwith "Error while parsing MiniIMP")
 
 let get_optimized_riscfg_from_miniimp () =
@@ -48,7 +48,7 @@ let get_optimized_riscfg_from_miniimp () =
             (fun _ ->
               let optimized_cfg, _, _ =
                 Target_code.chaitin_briggs_algorithm
-                  (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))
+                  (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)
                   (int_of_string reg_num) Target_code.cost_metric
               in
               Printf.fprintf oc "%s" (Cfg.minirisc_cfg_to_dot optimized_cfg))
@@ -68,7 +68,7 @@ let print_to_dot_interference_graph () =
             (fun _ ->
               Printf.fprintf oc "%s"
                 (Target_code.interference_graph_dot
-                   (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog))))
+                   (Cfg.miniimp_cfg_to_minirisc (Cfg.translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)))
       | None -> failwith ("Error while parsing file " ^ namefile))
 
 let compute_live_analysis_and_create_dot () =
@@ -85,7 +85,7 @@ let compute_live_analysis_and_create_dot () =
             (fun _ ->
               Printf.fprintf oc "%s"
                 (live_analysis_dot
-                   (miniimp_cfg_to_minirisc (translate_miniimp prog))))
+                   (miniimp_cfg_to_minirisc (translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)))
       | None -> print_string "Error: Parsing failed\n")
 
 let compute_defined_analysis_and_create_dot () =
@@ -102,7 +102,7 @@ let compute_defined_analysis_and_create_dot () =
             (fun _ ->
               Printf.fprintf oc "%s"
                 (defined_analysis_dot
-                   (miniimp_cfg_to_minirisc (translate_miniimp prog))))
+                   (miniimp_cfg_to_minirisc (translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)))
       | None -> print_string "Error: Parsing failed\n")
 
 let info_string =
