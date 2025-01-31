@@ -12,17 +12,17 @@ type ast =
   | LetFun of var * var * ast * ast
   | Value of value
   | Var of var
-and
-value =
+
+and value =
   | Integer of int
   | Boolean of bool
   | RecClosure of var * var * ast * env
   | Closure of var * ast * env
-and
-env = value EnvMap.t
 
-(** Converts a {!Minifun.value} into his string counterpart *)
+and env = value EnvMap.t
+
 val string_of_value : value -> string
+(** Converts a {!Minifun.value} into his string counterpart *)
 
-(** Evaluates a minifun program, in the form of an {!Minifun.ast}*)
 val eval_fun_ast : ast -> value
+(** Evaluates a minifun program, in the form of an {!Minifun.ast}*)

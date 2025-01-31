@@ -28,7 +28,7 @@
  (name untyfun)
  (libraries minifun))
 
- (executable
+(executable
  (package minityfun)
  (public_name tyfun)
  (name tyfun)

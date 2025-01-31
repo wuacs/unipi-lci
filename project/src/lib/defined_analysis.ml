@@ -22,7 +22,8 @@ let update_in (cfg : Minirisc.scomm Cfg.control_flow_graph) (node : Cfg.node)
           List.fold_left
             (fun set node ->
               RegisterSet.inter set (Cfg.NodeMap.find node bas).out_set)
-             (Data_flow_utils.get_top cfg) precedessors;
+            (Data_flow_utils.get_top cfg)
+            precedessors;
         out_set = blk.out_set;
       }
       bas
@@ -68,11 +69,19 @@ let defined_analysis (cfg : Minirisc.scomm Cfg.control_flow_graph) =
   in
   compute_fixpoint cfg false start
 
-let check_for_undefinedness (cfg : Minirisc.scomm Cfg.control_flow_graph) : bool= 
+let check_for_undefinedness (cfg : Minirisc.scomm Cfg.control_flow_graph) : bool
+    =
   let defined_analysis_result = defined_analysis cfg in
-    Cfg.NodeMap.fold (fun nodeId sets b -> 
-      match b with 
+  Cfg.NodeMap.fold
+    (fun nodeId sets b ->
+      match b with
       | true -> b
-      | _ -> match (RegisterSet.subset (Data_flow_utils.used_registers cfg nodeId) sets.Data_flow_utils.in_set) with
-            | true -> false
-            | _ -> true) defined_analysis_result false
+      | _ -> (
+          match
+            RegisterSet.subset
+              (Data_flow_utils.used_registers cfg nodeId)
+              sets.Data_flow_utils.in_set
+          with
+          | true -> false
+          | _ -> true))
+    defined_analysis_result false

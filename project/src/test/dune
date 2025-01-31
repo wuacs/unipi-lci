@@ -1,4 +1,4 @@
-(test 
+(test
  (name data_flow_tests)
  (libraries miniimp data_flow_analysis alcotest))
 

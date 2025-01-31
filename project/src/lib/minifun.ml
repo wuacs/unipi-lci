@@ -1,5 +1,6 @@
 module EnvMap = Map.Make (struct
   type t = string
+
   let compare x y = String.compare x y
 end)
 

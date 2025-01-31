@@ -53,6 +53,6 @@
  (modules minityfun minityfun_ast minityfun_lexer minityfun_parser))
 
 (library
-(public_name deque)
-(name deque)
-(modules deque))
+ (public_name deque)
+ (name deque)
+ (modules deque))

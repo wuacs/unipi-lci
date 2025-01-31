@@ -27,7 +27,7 @@ command:
 loop_statement:
     | WHILE bool_expr = bool_expr DO c = block_command {While(bool_expr, c)}
 conditional_statement:
-    | IF bool_expr = bool_expr THEN then_branch = command ELSE else_branch = block_command {Cond(bool_expr, then_branch, else_branch)} 
+    | IF bool_expr = bool_expr THEN then_branch = block_command ELSE else_branch = block_command {Cond(bool_expr, then_branch, else_branch)} 
 block_command:
     | sc = simple_command {sc}
     | LEFTPAR c = command RIGHTPAR {c}
