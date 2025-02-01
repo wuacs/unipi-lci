@@ -22,7 +22,7 @@ let extract_read_registers (stmt : riscomm) : RegSet.t =
     | Minirisc.Rtoi (_, r1, _, _) -> RegSet.add r1 RegSet.empty
     | Minirisc.Rtor (_, r1, r2, _) -> RegSet.add r2 (RegSet.add r1 RegSet.empty)
     | Minirisc.Rury (_, r1, _) -> RegSet.add r1 RegSet.empty
-    | Minirisc.Store (r1, _) -> RegSet.add r1 RegSet.empty
+    | Minirisc.Store (r1, r2) -> RegSet.add r2 (RegSet.add r1 RegSet.empty)
   with e ->
     Printf.eprintf "Error in extract_read_register: %s\n" (Printexc.to_string e);
     raise e
@@ -35,7 +35,7 @@ let extract_written_register (stmt : riscomm) : reg Option.t =
     | Minirisc.Rtoi (_, _, _, r) -> Some r
     | Minirisc.Rtor (_, _, _, r) -> Some r
     | Minirisc.Rury (_, _, r) -> Some r
-    | Minirisc.Store (_, r) -> Some r
+    | Minirisc.Store (_, _) -> None
     | Minirisc.Nop -> None
   with e ->
     Printf.eprintf "Error in extract_written_register: %s\n"
