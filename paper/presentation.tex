@@ -1,0 +1,546 @@
+\documentclass[t]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{theorem}
+\usepackage{textcomp}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{multicol}
+\usepackage{listings}
+\usepackage{hyperref}
+\usetheme{default}
+
+% Define OCaml language for listings
+\lstdefinelanguage{ocaml}{
+	morekeywords={let, rec, in, match, with, type, fun, function, try, end, begin, if, then, else, open, module, struct, sig, val, of, for, while, do, done, as, exception, raise, assert, lazy, ref, mutable, inherit, virtual, new, object, method, private, include, constraint, class, initializer, and, or, not, mod, land, lor, lxor, lsl, lsr, asr},
+	sensitive=true,
+	morecomment=[n]{(*}{*)},
+	morestring=[b]",
+}
+
+\lstdefinelanguage{pratner}{
+	keywords = {handler,handle, if, do, then, else, fun, rec, with, true, false, in}
+}
+
+\beamertemplatenavigationsymbolsempty
+
+\title{Algebraic Effects and Handlers}
+\author{Dario Bekic}
+\subtitle{Seminar for the course of Languages, Compilers and Interpreters
+A.Y. 24/25}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+  \frametitle{Table of Contents}
+  \tableofcontents
+\end{frame}
+
+\begin{frame}
+  \frametitle{What can we do with them?}
+   \begin{itemize}
+  \item Generators
+  \item Input and Output
+  \item Embedding state in pure FP 
+  \item Transactions
+  \item Asynchronous Programming
+  \item Concurrent Programming
+  \item Backtracking
+   \end{itemize}
+   Are a few examples...
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{What are effects?}
+
+An effect is an operation which interrupts usual control flow and bubbles up the notification(and much more) of the effect on the record stack until an \alert{effect handler} which contains an \alert{effect clause} for the said effect appears.
+
+Similar to the concept of exceptions in mainstream languages...
+
+\begin{lstlisting}[language=java, basicstyle=\scriptsize\ttfamily, breaklines=true, xleftmargin=0em, lineskip=-1pt, aboveskip=0pt, belowskip=0pt, moredelim={[is][\color{red}]{STARTRC}{ENDRC}}]
+try {
+  try {
+    try {
+      try {
+	    throw new ThrownException(...);
+      } catch (ExceptionType1 ex) {
+		//...
+      }
+    } catch (ExceptionType2 ex) {
+	   //...	
+    }
+  } catch (ExceptionType3 ex) {
+    //...
+  }
+} catch (ThrownException ex)  {
+	// This block will be executed 
+}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}
+	\frametitle{Pretnar's language}
+	
+	In \cite{pratner} a language was designed to illustrate Effect-full programming. Apart from technicalities of the language, the most important aspects are:
+	\begin{itemize}
+		\item Handlers are first-class citizens: this gives a way of \alert{composing handlers} in a dynamic way, i.e. we are not bound to lexical propagation in effect propagation (like for exceptions in Java)
+		\item Functions, i.e. mappings from values \alert{to computations}, are first-class citizens, however...
+		\item Computations are \textit{restricted} first-class citizens: we can bind a computation $c$ with a \textbf{do} x $\leftarrow c$ \textbf{in} $c_2$  instruction to variable $x$ or we can capture a continuation through an \alert{operational clause} in an handler
+		
+	\end{itemize}
+	
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Continuations}
+	The previous frame referenced the concept of continuation, which can be interpreted as \alert{the state of the execution} at the moment of the raised effect.
+	\newline
+	Every raised effect, except the \textit{return} effect, give raise to a new continuation which is a function which when invoked, "runs" the computation returned where the effect invocation is replaced with the value.
+	\newline
+	In \cite{pratner} raising an effect is written: 
+	\begin{lstlisting}[basicstyle=\small]
+		op(v; y.c)
+	\end{lstlisting}		
+	But we shall use the following in our examples:
+	\begin{lstlisting}[basicstyle=\small, mathescape= true]
+		op $\triangleq$ op(v ; y. return y)
+	\end{lstlisting}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Handlers}
+	
+	A handler can be seen as an object which carries the semantics of a try-catch block in Java. This object can be used to \alert{handle} arbitrary computations.
+	In \cite{pratner} an handler is defined as a set of $op_i(x; k)\mapsto c_i$ terms. Where:
+	\begin{itemize}
+		\item $op_i$ is an effect label
+		\item $x$ is the value passed by the effect context(unit assumed for producer operations)
+		\item $k$ represents the continuation
+		\item a computation $c_i$ representing what the handler will do when it captures such effect.
+	\end{itemize}
+	An Handler has arbitrary control on when, how and if \alert{resume} the continuation. A \textit{catch block} in Java can be seen as a weaker form of handler, where no continuations is created.
+\end{frame}
+
+
+\begin{frame}[fragile]
+	\frametitle{Continuations cont'd}	
+	Storing a continuation is not \alert{always} easy.
+	\newline
+	\newline
+	In languages like Eff and Koka, which ground their logic on effects, continuations are function values like any other, this means they can be re-used, moved ecc.
+	\newline
+	\newline
+	In OCAML 5.x, a weaker form of continuations is used called \alert{one-shot continuations}. Which simply means we can resume a continuation only once.
+	\newline
+	\begin{itemize}
+		\item Less memory consuming, we do not need to copy stack frames
+		\item Enough expressiveness for \textit{most} concurrent programming
+		\item Avoids subtle bugs on linear resources held by the program
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{A note on implementation}
+	The uninteresting case of Java's exception are modeled simply as effects for which handler ignores the continuation argument
+	\newline
+	\newline
+	\textbf{Note}: in languages which may do "impure" behavior, like opening a file, we must pay attention on how handlers handle effects. 
+	If, for example, the handler simply accumulates continuations, because the continuation may hold resources, we could have memory leaks. 
+	\newline
+	Consider the following OCAML code:
+	\begin{lstlisting}[language=ocaml, basicstyle=\scriptsize\ttfamily, breaklines=true, xleftmargin=0em, lineskip=-1pt, aboveskip=0pt, belowskip=0pt, moredelim={[is][\color{red}]{STARTRC}{ENDRC}}]
+		
+let leaky_task () =
+	let oc = open_out "secret.txt" in
+	Fun.protect ~finally:(fun _ -> close_out oc) 
+	(fun _ -> output_value oc (myEffect "I will not return here")
+	\end{lstlisting}
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Backtracking - Two Shot Continuations}
+	
+	But \alert{what about Multi-shot}?
+	Backtracking !
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=-2pt, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+
+rec fun chooseInt(m, n) $\rightarrow$
+	if m $\ge$ n then fail () else 
+	do b $\leftarrow$ decide () in
+	if b then (return m) else chooseInt (m+1, n)
+
+rec fun generateSets (input, curr, index, length) $\mapsto$ 
+	if index = length then
+	 (do _ $\leftarrow$ print curr in fail ())
+	else 
+	 (do b $\leftarrow$ decide () in
+		if b then  
+		do t $\leftarrow$ chooseInt(index+1, length) in
+		(generateSets (input, add curr (get (input, curr)), t, length))
+		else 
+		(generateSets (input, curr, index+1, length)))
+		
+with handler 
+	{ decide (_, k) $\rightarrow$ 
+		with handler { fail (_, _) $\rightarrow$ k false}
+			 handle k true } 
+	handle generateSets (input, empty, 0, length)
+	\end{lstlisting}
+\end{frame}
+
+
+\begin{frame}[fragile]
+	\frametitle{State}
+	
+	A recurring problem with Functional Languages!\\[10pt]
+	Stateful handlers can be cleanly represented in \cite{pratner} thanks to first-class functions!
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible]
+		handler { 
+			get(_; k) $\rightarrow$ fun s $\rightarrow$ (k s) s
+			set(t; k) $\rightarrow$ fun _ $\rightarrow$ (k ()) t 
+			return x $\rightarrow$ fun final $\rightarrow$ (final, x)}
+	\end{lstlisting}  
+	
+	Every effect invocation adds a new parametric function to the chain, the return effect breaks it returning the final value and the state. We can use this to create \alert{transactions}!
+		
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+		handler { 
+			get(_; k) $\rightarrow$ fun s $\rightarrow$ (k s) s
+			set(t; k) $\rightarrow$ fun _ $\rightarrow$ (k ()) t 
+			return x $\rightarrow$ fun final $\rightarrow$ <@\textcolor{red}{update final }@>; return x}
+	\end{lstlisting}  
+	
+	
+	\end{frame}
+
+	\begin{frame}[fragile]
+		\frametitle{Iterators}
+		
+		In modern mainstream languages like C\# and Python we are provided the \textit{yield} instruction:
+		
+		\begin{lstlisting}[language=python, mathescape=true, basicstyle=\scriptsize,lineskip=-2pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible]
+			def fun ():
+				yield 3
+				yield 4
+				yield 7
+				
+			for i in fun ():
+				print i # 3 4 7
+		\end{lstlisting}
+		
+		Conceptually, a yield instruction saves the executions state of the execution of \textit{fun} and returns an iterator object whose next method \alert{continues} the execution!
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Iterators cont'd}
+	
+	Iterating lists...
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+		rec fun iterate (xs) $\rightarrow$ 
+			if xs = Nil then 
+				return _ 
+			else
+				do (x, xs) $\leftarrow$ head xs in
+				do _ $\leftarrow$ yield x in
+				iterate xs
+		
+	\end{lstlisting}  
+	
+	Building custom iterators...
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+		fun foreach (action, test) $\rightarrow$ 
+		with handler {
+			 return x $\rightarrow$ return _
+			 yield (x; k) $\rightarrow$ if test x then k () else return _
+		} handle ( action () )
+	\end{lstlisting}  
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Asynchronous operations}
+	Asynchronous operations are such operations which can be run in the background and, after they have returned, a function called the \textit{callback function} is executed with, sometimes, the result of the asynchronous function as input.
+	
+	With effects we can easily implement asynchronous operations and customize them (e.g. deciding whether the operation is blocking or non-blocking with specific handler by deferring the continuation after the operations or resuming it instantly) 
+	
+
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+	primitive_http_get_response: (oninput : string $\rightarrow$ unit!{...})
+	
+	effect_http_get_response: unit $\rightarrow$ string
+	\end{lstlisting}  
+	We can seamlessly use it in our code (no \textit{asynch}, \textit{await} pollution...)
+	
+	\begin{multicols}{2}
+		\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+fun () $\rightarrow$
+do _ $\leftarrow$ print("Sending GET request...") 
+in
+do response $\leftarrow$ effect_http_get_response ()
+in
+do _ $\leftarrow$ print ("Response was " + resposne)
+		\end{lstlisting}  
+		
+		\columnbreak
+		
+		\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+handler {
+	effect_http_get_response (_; k) $\rightarrow$
+	primitive_http_get_response k
+}
+
+		\end{lstlisting}
+	\end{multicols}
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{(Cooperative) Multi-threading}
+	
+	Cooperative Multi-threading is based on the simulation of parallelism by the handling of threads by the scheduler. 
+	A \alert{fork} operation creates a new thread while a \alert{yield} halts the current thread, giving an opportunity to the scheduler to decide who goes next.
+		
+	We can define these operations as effects:
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+		fork : unit $\rightarrow$ unit
+		yield : (unit $\rightarrow$ (unit!{collab, print})) $\rightarrow$ unit
+		collab : int $\rightarrow$ unit
+	\end{lstlisting}  
+	
+	
+		Where the type \verb|unit!{collab, print}| is the type of a computations which return a unit value and may raise \textit{collab} effect.
+		
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Multi-threading cont'd}
+	
+	Then we can create a simple round-robin scheduler which matches the first waiting thread with the first requesting a collaboration.
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+	round_robin $\triangleq$ fun c $\rightarrow$ 
+		do enqueue $\leftarrow$ 
+			(fun thread threads $\rightarrow$ append threads thread 
+		in 
+		do dequeue $\leftarrow$
+			(fun threads waiting $\rightarrow$
+					if empty threads then 
+						() // Done
+					else ( do (x, xs) $\leftarrow$ match threads in 
+						return (xs, x)))
+		in
+		do sch $\leftarrow$ handler {
+			fork (t; k) $\rightarrow$ (fun (l, w) $\rightarrow$ (do t' = enqueue k l in t (t', w))
+			yield (_; k) $\rightarrow$ (fun (l, w) $\rightarrow$ (do (l', t) $\leftarrow$ dequeue l in 
+					do l'' = enqueue l' k in t (l'', w)))
+			collab (i; k) $\rightarrow$ (fun (l, w) $\rightarrow$ if is_none w = false then
+					    do Some(i', k') $\leftarrow$ w in 
+					    do l' $\leftarrow$ enqueue (k' i) l in 
+					    do w' $\leftarrow$ None in k (i', (l', w'))
+					else 
+					    do m $\leftarrow$ Some(i, fun i $\rightarrow$ (fun w $\rightarrow$ k (i, w))) in 
+					    do (l', t)  $\leftarrow$ dequeue l in t (l', m)
+			return ((l, w); _) $\rightarrow$ do (l', t)  $\leftarrow$ dequeue l w in t (l', w)})
+		in 
+		handle (with sch handle c ())
+		
+	\end{lstlisting}  
+	
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Multi-threading cont'd 2}
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+round_robin (fun _ $\rightarrow$
+do f1 $\leftarrow$ (fork (fun f1' $\rightarrow$ 
+	do _ $\leftarrow$ print "Hi from thread 0" in
+	do (v, world) $\leftarrow$ (collab 0) f1' in 
+	do _ $\leftarrow$ print "thread 0 received " + v in
+	world)) ([], None)
+in
+do _ $\leftarrow$ (fork (fun f2' $\rightarrow$ 
+	do _ $\leftarrow$ print "Hi from thread 1" in
+	do (v, world) $\leftarrow$ (collab 1) f2' in
+	do _ $\leftarrow$ print "thread 1 received " + v in
+	world)) f1
+	\end{lstlisting}
+	
+	The absence of mutable data types requires us to wrap a thread's computation in a function $\verb|threads| \times \verb|waiting| \rightarrow \verb|threads| \times \verb|waiting|$ which encapsulates the update on the queue and to the waiting threads cause by the thread's execution.
+	
+\end{frame}
+
+	\begin{frame}[fragile]
+	\frametitle{Multi-threading cont'd 3}
+	A more readable example, using \textit{thunks}, if we introduced \alert{mutable types} and \alert{polymorphic types} (otherwise we have to use two different \textit{enqueue})
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+		round_robin_ref $\triangleq$ fun c $\rightarrow$
+			do waiting $\leftarrow$ ref 
+			in
+			do queue $\leftarrow$ ref 
+			in
+			do enqueue $\leftarrow$ fun t v $\rightarrow$ 
+				(do thunk $\leftarrow$ fun () $\rightarrow$ t v in 
+				push_mut queue thunk) 
+			in
+			do dequeue $\leftarrow$ fun () $\rightarrow$ 
+				if empty queue 
+					then () 
+				else 
+					do thunk $\leftarrow$ pop_mut queue in thunk ()
+			do scheduler $\leftarrow$ handler {
+				return (_; _) $\rightarrow$ dequeue ()
+				yield (_; k) $\rightarrow$ (do _ $\leftarrow$ enqueue k ()) in dequeue ()
+				fork (f; k) $\rightarrow$ do _ $\leftarrow$ enqueue k () in f ()
+				collab (i; k) $\rightarrow$ if is_none waiting = false then 
+						(do Some(i', k') $\leftarrow$ waiting in 
+						do _ $\leftarrow$ put_none waiting in
+						do _ $\leftarrow$ enqueue k' i in k i')
+						else 
+						    (do _ $\leftarrow$ put_some waiting (i, k) in
+						     (dequeue ())) 
+			} 
+			in
+			with scheduler handle c ()
+	\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Types}
+	
+	The type of an handler can be seen as a function from $\verb|A!{...}| \Rightarrow \verb|B!{...}|$...
+	
+	Each effect has a type $A\rightarrow B$ i.e. uses \alert{type values}, our handler's type is affected by the type of the handlers it defines:
+	
+	\begin{itemize}
+		\item Every clause $\verb|op(x; k)| \rightarrow c$ must specify a valid computation, i.e. among all the clauses the type of the computation run must be the same.
+		\item The return clause $\verb|x| \rightarrow  c_r$, if present, specifies the output value type of computations which can be handled.
+	\end{itemize}
+	
+\end{frame}
+	
+\begin{frame}[fragile]
+	\frametitle{Induction Principle}
+	Reasoning about algebraic effects is hard due to:
+	\begin{itemize}
+		\item Handlers being first-class values, so it is undecidable which handler will be used for a particular effect
+		\item Inversion of Control-Flow
+		\item Subtle design decisions (e.g. Deep and Shallow handlers) 
+	\end{itemize}
+
+	Definition: two terms are \alert{observationally} equivalent if any occurrence of one can be substituted with the other without affecting observable properties of the rest of the program.
+
+	Definition: predicate $\phi$ holds for all computations $c$ if
+	\begin{enumerate}
+		\item $\phi(\verb|return v|)$ holds for every value $v$
+		\item $\phi(op(v; y.c'))$ holds for every op in handler $h$ if we assume that $\phi(c')$ holdws for all \alert{possible} $y$ 
+	\end{enumerate}
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Using the principle 1}
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\small,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+with (handler {return x $\mapsto$ $c_2$}) handle $c_1 \equiv$ do x $\leftarrow c_1$ in $c_2$ 
+	\end{lstlisting}
+	
+	\begin{itemize}
+		\item For the base case we have $c_1 = $ \textbf{return} $v$ which is trivial, both terms evaluate computation $c_2$ with x as a binding of the result of $c_1$.
+		\item When $c_1 = op(v; y.c')$ we can either have $v=return$ or not
+		\begin{itemize}
+		\item If we \alert{do} then we regress to base case.
+		\item If we do \alert{not}, then:
+		\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\small,lineskip=0pt, aboveskip=5pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+with (handler {return x $\mapsto c_2$}) handle op(v; y.c')
+$\equiv$ (12) 
+op(v; y. with handler {return x $\mapsto c_2$} handle c')
+$\equiv$ (Inductive hypothesis)
+op(v; y. do x $\leftarrow c' $ in $c_2$)
+$\equiv$ (2)
+do x $\leftarrow$ op(v; y.c') in $c_2$
+$\equiv$ (By hypothesis)
+do x $\leftarrow c_1$ in $c_2$
+		\end{lstlisting}
+		
+		\end{itemize} 
+	\end{itemize}
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Using the principle 2}
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\small,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+do $x_2$ $\leftarrow$ (do $x_1$ $\leftarrow$ $c_1$ in $c_2$) in $c_3 \equiv$ do $x_1$ $\leftarrow$ $c_1$ in (do $x_2$ $\leftarrow$ $c_2$ in $c_3$)
+	\end{lstlisting}
+	
+	\begin{itemize}
+	\item We will assume that any middle form with only $c_2$ and $c_3$ to be equivalent, we will focus on $c_1$. 
+	\item The base case is $c_1$ = return v:
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\small,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+do x2 $\leftarrow$ (do x1 $\leftarrow$ return v in c2) in c3 
+$\equiv$ (1)
+do x2 $\leftarrow$ c2[v/x1] in c3 
+$\equiv$
+(do x2 $\leftarrow$ c2 in c3) [v/x1]
+$\equiv$ (1)
+do x1 $\leftarrow$ c1 in (do x2 $\leftarrow$ x2 in c3)
+	\end{lstlisting}
+	\end{itemize}
+\end{frame}
+	
+\begin{frame}[fragile]
+	\frametitle{Using the principle 2 cont'd}
+		\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\small,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+do $x_2$ $\leftarrow$ (do $x_1$ $\leftarrow$ $c_1$ in $c_2$) in $c_3 \equiv$ do $x_1$ $\leftarrow$ $c_1$ in (do $x_2$ $\leftarrow$ $c_2$ in $c_3$)
+	\end{lstlisting}
+	\begin{itemize}
+		\item For the inductive step assume $c_1 = op(v; y.c')$ and assume $v\neq \text{return}$:
+		\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\small,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+do $x_2$ $\leftarrow$ (do $x_1$ $\leftarrow$ $c_1$ in $c_2$) in $c_3$
+$\equiv$ (By hypothesis)
+do $x_2$ $\leftarrow$ (do $x_1$ $\leftarrow$ op(v; y.c') in $c_2$) in $c_3$
+$\equiv$ (2)
+do $x_2$ $\leftarrow$ op(v; y.do $x_1$ $\leftarrow$ c' in $c_2$) in $c_3$
+$\equiv$ (2)
+op (v; y. do $x_2$ $\leftarrow$ (do $x_1$ $\leftarrow$ c' in $c_2$) in $c_3$)
+$\equiv$ (By inductive hypothesis)
+op (v; y. do $x_1$ $\leftarrow$ c' in (do $x_2$ $\leftarrow$ $c_2$ in $c_3$))
+$\equiv$ (2)
+do $x_1$ $\leftarrow$ op(v; y.c') in (do $x_2$ $\leftarrow$ $c_2$ in $c_3$)
+$\equiv$ (By hypothesis)
+do $x_1$ $\leftarrow$ $c_1$ in (do $x_2$ $\leftarrow$ $c_2$ in $c_3$)
+		\end{lstlisting}
+	\end{itemize}
+\end{frame}
+	
+\begin{frame}{Bibliography}
+	\begin{thebibliography}{100}
+	\bibitem{pratner} M. Pratner "An Introduction to Algebraic Effects and Handlers Invited tutorial paper"
+\end{thebibliography}
+\end{frame}
+
+\end{document}
