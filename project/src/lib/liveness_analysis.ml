@@ -36,7 +36,7 @@ let update_in (cfg : mriscfg) (node : node) (stateMap : stateMap) : stateMap =
 let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap)
     (coalesced : node list Nodemap.t) : stateMap =
   try
-    let blk = find_node_safe node bas "update out" in
+    let blk = find_node_safe node bas "error in update_out" in
     if node == cfg.exit then
       Cfg.NodeMap.add node
         {
@@ -45,7 +45,7 @@ let update_out (cfg : mriscfg) (node : Cfg.node) (bas : stateMap)
         }
         bas
     else
-      let precedessors = find_node_safe node coalesced "find edges after" in
+      let precedessors = find_node_safe node coalesced "error in update_out" in
       Cfg.NodeMap.add node
         {
           Data_flow_utils.in_set = blk.in_set;
@@ -92,7 +92,7 @@ let liveness_analysis (cfg : mriscfg) : stateMap =
                   let new_global =
                     update_out cfg x (update_in cfg x new_state) coalesced_map
                   in
-                  let new_local = find_node_safe x new_global "last" in
+                  let new_local = find_node_safe x new_global "error in liveness_analysis" in
                   if
                     RegSet.cardinal new_local.out_set
                     != RegSet.cardinal initial.Data_flow_utils.out_set

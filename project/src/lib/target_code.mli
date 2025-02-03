@@ -3,8 +3,6 @@ open Minirisc
 type mriscfg = scomm Cfg.control_flow_graph
 type spill_metric = mriscfg -> register -> int
 
-val main_label : label
-
 val chaitin_briggs_algorithm :
   mriscfg -> int -> spill_metric -> mriscfg * memory_loc * memory_loc
 (**

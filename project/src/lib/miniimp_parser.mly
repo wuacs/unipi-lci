@@ -12,7 +12,8 @@
 %token RIGHTPAR LEFTPAR
 %token OR AND LESS NOT
 
-%left SEQ MINUS PLUS MUL AND OR
+%left SEQ MINUS PLUS AND OR
+%left MUL
 %left NOT
 
 %start <program> prg
