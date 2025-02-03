@@ -32,6 +32,7 @@ _opam/
 *.pdf
 
 # Latex
+# Latex
 *.aux
 *.bit
 *.blg
@@ -49,3 +50,16 @@ _opam/
 *.url
 *.svn
 *.toc
+*.nav
+*.snm
+*.synctex.gz
+*.vrb
+*.pyg
+*.pyg.lst
+*.pyg.sty
+*.output
+*.pygstyle
+*.out
+
+# Xournal
+*.xopp
