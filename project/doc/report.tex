@@ -47,8 +47,12 @@ The project's main goal is to design and implement aspects of programming langua
 
 \section{MiniImp}\label{Section::MiniImp}
 
+MiniImp was divided in two main modules: $\verb|miniimp.mli|$ which provides core functions to experiment with the language, and $\verb|miniimp_ast.mli|$ containing all the types which reify the language in OCaml.
+In addition, for the lexing and parsing, modules $\verb|miniimp_lexer.mll|$ and $\verb|miniimp_parser.mly|$ were created. Together, the modules form a library named $\verb|miniimp|$, which can be used to parse and execute programs written in MiniImp.
 
-\subsection{Parsing Conflicts}
+\subsection{Parsing Conflicts}\label{Sec::parsingImp}
+
+In the following sections we present the conflicts found when translating the \href{https://lceragioli.github.io/pages/Slides/semantics.pdf}{formal grammar of MiniImp} to an LR(1) grammar.
 
 \subsubsection{While}
 
@@ -66,9 +70,9 @@ WHILE bool_expr DO command .
 
 Lookahead symbol: SEQ
 	\end{lstlisting}
-	\verb|State1| represents placing a sequence of commands in the body of the \verb|WHILE| construct.\\
-	\verb|State2| represents placing a \verb|;|, i.e. a \verb|SEQ| character, after a \verb|WHILE|, because the entire \verb|WHILE| expression could be reduced to a term.\\
-	\textbf{Solution}: for a sequence of operations to take place in the body of a while construct we require the use of brackets. We create the non-terminal $\verb|block_command|$ representing either a sequence of instructions between brackets or an instruction which is interpreted as the whole body of the while(e.g. a new while construct or a single assignment).
+	The shifting represents placing a sequence of commands in the body of the \verb|WHILE| construct.
+	The reduce represents placing a \verb|;|, i.e. a \verb|SEQ| character, after a \verb|WHILE|, because the entire \verb|WHILE| expression could be reduced to a term.\\
+	\textbf{Adopted disambiguation}: for a sequence of operations to take place in the body of a while construct we require the use of brackets. We create the non-terminal $\verb|block_command|$ representing either a sequence of instructions between brackets or an instruction which is interpreted as the whole body of the while(e.g. a new while construct or a single assignment).
 	
 \subsubsection{If}
 	\begin{lstlisting}[caption={Shift-reduce conflict with if term}, captionpos=b]
@@ -81,8 +85,8 @@ IF bool_expr THEN command ELSE .
 	\end{lstlisting}
 	The shifting represents extending the \verb|ELSE|'s body with a sequence of commands
 	The reduce represents executing first the \verb|IF| and then another command.\\
-	\textbf{Solution}: 
-	Similarly to the problem above we need to be explicit to how commands are grouped together in constructs which introduce a block. We decided that a sequence of instructions belongs to the nearest \verb|ELSE| block only if they are wrapped in brackets, otherwise only the first instruction belongs to the \verb|THEN| and the second is considered to be the next instruction happening after the nearest \verb|IF| block.	
+	\textbf{Adopted Disambiguation}: 
+	Similarly to the problem above we need to be explicit how commands are grouped together in constructs which introduce a block. We decided that a sequence of instructions belongs to the nearest \verb|ELSE| block only if they are wrapped in brackets, otherwise only the first instruction belongs to the \verb|THEN| and the second is considered to be the next instruction happening after the nearest \verb|IF| block, i.e. $\verb|IF ... THEN ... ELSE c2 ; c1 | \equiv \verb|(IF ...); c1|$
 	\subsubsection {Sequences}
 	
 	\begin{lstlisting}[caption={Conflict on the associativity of sequences}, captionpos=b]
@@ -95,32 +99,31 @@ command SEQ command // lookahead token appears
 command SEQ command .
 	\end{lstlisting}
 	
-	The problem is that we do not specify associativity for sequences of instructions.\\
-	\textbf{Solution}: we will give left associativity using the Menhir-specific directive:\\
+	The problem here is that we do not specify associativity for sequences of instructions.\\
+	\textbf{Adopted Disambiguation}: we will give left associativity using the Menhir-specific directive:\\
 	\verb|%left SEQ|(in \hyperref[Section::TyFun]{MiniTyFun}'s parser for completeness we instead reworked the grammar).
 	
 	\subsubsection {Operators}
-	The following conflict is a 
-	Thus, we will provide only one example:
+	The following is another Shift-Reduce conflict: 
 	
-	\begin{lstlisting}
+	\begin{lstlisting}[basicstyle=\small]
 arit_expr MINUS arit_expr 
-arit_expr . PLUS arit_expr 
+arit_expr . PLUS arit_expr // Looking Ahead at PLUS shift
 
 arit_expr PLUS arit_expr
-arit_expr MINUS arit_expr .
+arit_expr MINUS arit_expr . // Looking Ahead at PLUS reduce
 	\end{lstlisting}
 	
-	Menhir tells us that, while having as a symbol of look-ahead \verb|PLUS|, we could be shifting
-	or immediately reducing the \verb|MINUS| operation.
-	Thus we will give left associativity to arithmetic(and boolean) tokens. The \verb|NOT| operator is given higher precedence.
+	While having as a symbol of look-ahead \verb|PLUS|, we could be shifting
+	or immediately reducing the \verb|MINUS| operation.\\
+	\textbf{Adopted Disambiguation}: we will give left associativity to arithmetic(and boolean) tokens. The \verb|NOT| operator is given higher through Menhir ad-hoc semantics explained (\href{https://gallium.inria.fr/~fpottier/menhir/manual.pdf#subsubsection.4.1.4}{here}).
 
 
 \section{MiniFun}
 \label{Section::MiniFun}
 
-MiniFun is a simple untyped functional language. A parser was not implemented for MiniFun but instead for its typed counterpart. MiniFun is a single-module library which defines both its AST and an $\verb|eval_fun_ast|$ which takes a value of type $\verb|ast|$, representing a program written in MiniFun, and returns a element of type $\verb|value|$ which can be either a function, since we are in a functional language, or an integer or a boolean.
-The run-time environment is a value of type $\verb|env|$ which is simply a map with strings as keys, so that we can keep track of variables.
+MiniFun is a simple untyped functional language and all its implementation can be found in the $\verb|minifun.mli|$ module. A parser was not implemented for MiniFun but instead for its \hyperref[Section::TyFun]{typed counterpart}. \verb|minifun.mli| defines both the type representing the language abstract syntax tree and an $\verb|eval_fun_ast|$ which takes a value of type $\verb|ast|$, representing a program written in MiniFun, and returns an element of type $\verb|value|$ which can be either a function, since we are in a functional language, an integer or a boolean.
+The run-time environment is typed $\verb|env|$ which is simply a map with strings as keys, so that we can keep track of variables. The environment is generic: we will be creating mappings for types, values and other variable-related information.
 One interesting thing of the evaluation function is that, if it fails to resolve a variable during its execution, (i.e. said variable was not initialized with a $\verb|Let|$ or $\verb|LetFun|$ construct) it fails.
 
 
@@ -137,8 +140,8 @@ $\verb|LET FUN|$
 \[
 \inference[]
 { 
-	\Gamma[f \mapsto \tau \texttt{ -> } \tau'] \vdash t' \triangleright \tau''\quad
-	\Gamma \vdash t \triangleright \tau'
+	\Gamma[f \mapsto \tau] \vdash t' \triangleright \tau''\quad \tau = \lambda \texttt{->} \gamma \quad 
+	\Gamma \vdash t \triangleright \gamma
 }
 {
 	\begin{array}{c}
@@ -157,7 +160,7 @@ $\verb|FUN|$
 }
 {
 \begin{array}{c}
-\Gamma \vdash  \text{ fun } x:\tau \texttt{ => } t \triangleright (\tau \rightarrow \tau')
+\Gamma \vdash  \text{ fun } x:\tau \texttt{ => } t \triangleright \tau \rightarrow \tau'
 \end{array}
 }
 \]
@@ -169,9 +172,10 @@ $\verb|Integer_t|$ for integers, $\verb|Boolean_t|$  and $\verb|Closure_t(d, c)|
 
 \subsection{Parsing Conflicts}
 
-Conflicts found:
+Now we show a list of conflicts found when translating the ambiguous grammar of MiniTyFun in an LR(1) equivalent and the adopted disambiguation.
+Shared conflicts which have already been discussed in \hyperref[Sec::parsingImp]{MiniImp's section} are not re-reported as their solution is the same.
 
-\subsubsection{Operator precedence}
+\subsubsection{LET/LETFUN}
 	An example of operator precedence problem is the following:
 	\begin{lstlisting}
 
@@ -181,28 +185,31 @@ LETFUN VAR VAR TYPE_SEP typing term IN term .
 LETFUN VAR VAR TYPE_SEP typing term IN term 
 term . PLUS term 
 	\end{lstlisting}
-	 We want the following \verb|... IN term PLUS term| to mean that in the context of \verb|LETFUN| (or \verb|LET|) we have the sum of two terms, not that we sum the \verb|LETFUN| term with another term. The issue this conflict indicates is that of operator precedence: we do not know whether we should reduce the term to the sum or to continue parsing. \\
-	\textbf{Solution}: \\First we make a distinction between general context-introducing terms and applications, creating the non-terminal $\verb|basic_term|$ which is used in places where a literal or a variable is expected. To preserve the semantics of the language and to keep it readable we require the use of syntactic sugar represented by brackets to use a context-introducing term instead of a literal or variable in applications. Then, we make the application left-associative. For operators we decided to give priority to multiplication over addition(and subtraction).
+	 We want the following \verb|... IN term PLUS term| to mean that in the context of \verb|LETFUN| (or \verb|LET|) we have the sum of two terms, not that we sum the \verb|LETFUN| term with another term. The issue this conflict indicates is that of operator precedence: we do not know whether we should reduce the term to the sum or to continue shifting. \\
+	\textbf{Adopted Disambiguation}: \\
+	First, we make a distinction between general context-introducing terms and applications, creating the non-terminal $\verb|basic_term|$ which is used in places where a literal or a variable is expected. To preserve the semantics of the language and to keep it readable we require brackets when using a context-introducing term instead of a literal or variable in applications: i.e. the following syntax is the one which gives the expected result: $\verb|f (LETFUN ... IN ...)|$. \\
+	Then, we make the application left-associative making the correspondent production left-recursive. 
+	For operators we decided to give priority to multiplication over addition(and subtraction): instead of using ad-hoc Menhir mechanisms we re-worked the grammar by distinguishing between operations with inferior level of precedence ($\verb|additive_expr|$) and an higher one ($\verb|multiplicative_expr|$).
 	
 \subsubsection{Application}
-We make application left-associative by creating a left recursive rule \\$\verb|operation = operation literal|$.
-This means that the double application $\verb|t t' t''|$ is parsed as $\verb|(t t') t''|$. We use $\verb|literal|$ because, for disambiguation of, for example, negative integers, we require the brackets as syntactic sugar. 
 
+
+We make application left-associative by creating a left recursive rule \\$\verb|operation = operation literal|$.
+This means that the double application $\verb|t t' t''|$ is parsed as $\verb|(t t') t''|$. We use $\verb|literal|$ because we make the decision that other terms are required to be enclosed in brackets; this means that, for example, \verb|f - 4| will be interpreted as the difference between identifier $\verb|f|$ and the integer 4. However, \verb|f (-4)| is the application of \verb|-4| to the identifier \verb|f|. 
 
 \section{Control-Flow Graphs}\label{Section::CFG}
 
 
 \subsection{Almost Maximal Block CFG}
-Our CFGs follow a version of the Maximal Block approach:  if two blocks do not differ in the outgoing or incoming edges, and they are in program order, then the two blocks are unified in one single block.
-\\
+Our control-flow graphs follow a variation of the Maximal Block approach.
 Our CFG-building function for \hyperref[Section::MiniImp]{MiniImp} maintains the invariant that the initial node(called $\verb|entry|$) of any sub-CFG shall not have any incoming arc and the last(called $\verb|exit|$) shall not have any outgoing arc.
 Consider the MiniImp program in listing \ref{lst:fiboImp}. The CFG, rendered by using the file produced by function \ref{HTU::Dot::impCfg}, using the \href{https://graphviz.org/download/}{graphiz} package, can be seen in figure \ref{fig:cfg:fibonacci}.
-Notice how there are 2 $\verb|SKIP|$ nodes which could be merged, maintaining the invariant, but they are kept separate for the following reasons:
-\begin{itemize}
-  \item Each $\verb|while|$ construct generates a new $\verb|exit|$ node because the end node must not have any outgoing arc, this is the node $Q$ in our figure.
-  \item Each $\verb|if|$ construct generates a final block where the two sub-CFGs represented by its branches will merge into. 
- \end{itemize}
-Sequences of blocks are correctly compacted in one block: in the initial block $X$, the first two instructions of the main, which in terms of MiniImp's AST are a sequence of instructions, have been compacted together with the guard generated by the $\verb|if|$ node.
+Notice how there are 2 $\verb|SKIP|$ nodes which could be merged, but they are kept separate for the following 2 reasons:
+\begin{enumerate}
+  \item Each $\verb|while|$ construct generates a new $\verb|exit|$ node because the end node must not have any outgoing arc, this is the node $Q$ in our figure. The sub-CFG created by parsing the while node consists of nodes $I, P, Q$.
+  \item Each $\verb|if|$ construct generates a final block where the two sub-CFGs represented by its branches will merge into. Since it does not know the structure of the CFG corresponding to its branches it cannot merge its final nodes. One would need to check that at least one of its branches is made of only $\verb|Nop|$ instructions and then could merge them. This check would need to be made for each construct which merges nodes.
+ \end{enumerate}
+Sequences of blocks are correctly compacted in one block: in the initial block $X$, the first two instructions of the \verb|main|, which in terms of MiniImp's AST are a sequence of instructions, have been compacted together with the guard generated by the $\verb|if|$ node.
 
 \begin{lstlisting}[caption={N-th Fibonacci number in MiniImp}, captionpos=b, label={lst:fiboImp}]
     def main with input in output out as
@@ -235,8 +242,8 @@ In MiniImp we may have the instruction $\verb|x := e|$ where $e$ is either a boo
 \begin{center}
 	\begin{figure}
 	  \includegraphics[width=\linewidth]{./report_resources/cfgimpfibo.pdf}
-	  \label{fig:cfg:fibonacci}
-	  \caption{CFG for Fibonacci's program}
+	  
+	  \caption{\label{fig:cfg:fibonacci} CFG for Fibonacci's program}
 \end{figure}
 \end{center}
 
@@ -248,22 +255,24 @@ We implemented two data flow analyses for the Intermediate Representation of Min
 We defined utility functions on the Control Flow Graph which may be used by different data flow analyses, such as $\verb|get_bottom|$ which returns the set of all registers defined in our Control Flow Graph, which is used, for example, when initializing the $\verb|LIVE_IN and LIVE_OUT|$ sets at the start of the liveness analysis.
 
 
-\subsection{Maximal Block CFG}
+\subsection{Non-minimal CFG}
 
 As explained in the \hyperref[Section::CFG]{CFG} section we used maximal blocks. This means that we need to specify what is a \textbf{used} register in a block and what is a \textbf{defined} register in a block. In a minimal block CFG each block $x$ contains only one instruction, which implies that the set \textbf{used}($x$) are the registers at the right-hand side of the instruction while the \textbf{defined} registers are at the left-hand side. 
 In our setting, \textbf{used}($x$) contains the registers which appear on the right-hand side of a MiniRISC instruction $y$, and never appear on the left-hand side of an instruction in instructions happening before $y$.
 Our function, $\verb|used_registers|$, in the $\verb|data_flow_utils|$ module achieves this, returning a set of used registers in the given block.
 The \textbf{defined} register set instead is the set of all registers which appear on the right-hand side of an instruction in a block.
 
-
 \section{MiniRISC}\label{Section::MiniRISC}
 
+
+For MiniRISC we decided to split the code between modules $\verb|minirisc.mli|$ which provides the types for instructions and support data structures (like Maps and Sets for registers, memory addresses...) which are part of the environment needed for compiling and/or interpreting MiniRISC code.
+The MiniRISC compiler is implemented by module $\verb|target_code.mli|$ which exposes types and functions which can help customize the compiling process. The $\verb|spill_metric|$ type,  for example, can make the compiler choose a different focus in its register allocation phase than what is used normally (by default the value $\verb|cost_metric|$, defined at module level, is used).
+Of course, there is the function $\verb|generate_target_code|$ which simply outputs the object code to a file; the function takes optional arguments as described here.
 MiniRISC instruction's type was divided between simple instructions (called $\verb|scomm|$) and instructions (called $\verb|comm|$). The first are used in the IR of the MiniRISC program and can be later on reified easily when generating the target code.
 
 \subsection{Registers and Labels}
-A register identifier is an integer and special integers, like the input register and output register, are given reserved integer identifiers. 
-A label, i.e. an instruction identifier to which a jump instruction can refer to, is an integer too. In the generation of the MiniRISC code, however, we substitute the initial label with the $\verb|main|$ label as per the specification. Note that we do not have to change any jump instruction as the invariant we keep for our intermediate representations assures no jump to initial block(s).
-
+A register identifier is an integer and special integers, like the input register and output register, are given reserved integer identifiers, see \href{https://github.com/wuacs/unipi-lci/blob/a630eb254e4eadffe7290cbda91d80f921402fde/project/src/lib/minirisc.mli#L28}{here}.
+The type label, i.e. an instruction identifier to which a jump instruction can refer to, is an integer too. In the generation of the MiniRISC code, however, we substitute the initial label with the $\verb|main|$ label as per the specification. Note that we do not have to change any jump instruction as the invariant we keep for our intermediate representations assures no jumps to initial blocks, and thus no jump to to the main label can be found in any instruction.
 \subsection{Handling guards}
 
 Guards modify the control-flow of our program, i.e. they represent conditional $\verb|jump|$ instructions. We adopt the convention that the written register of the last instruction contains the boolean which the $\verb|cjump|$ instruction will check. 
@@ -271,7 +280,7 @@ Guards modify the control-flow of our program, i.e. they represent conditional $
 \subsection{Optimization}
 
 For the optimization regarding the number of used registers in the generated code we decided to use the Chaitin-Briggs algorithm which can be found in the $\verb|target_code|$ module. The algorithm is parametric in the spill metric, however, our translation function $\verb|translate_cfg_to_target|$ uses a simple cost metric which counts the times a register has been read or written to.
-Note that any spill metric should be a lower is better metric as the algorithm picks the lowest w.r.t the metric among the uncolored registers to spill.
+Note that any spill metric should be a \textit{lower is better} metric as the algorithm picks the lowest w.r.t the metric among the uncolored registers to spill.
 
 \subsubsection{Handling special registers}
 
@@ -279,7 +288,7 @@ The coloring algorithm may map the input/output register to either memory or to 
 
 \subsection{Translating the CFG to ordered code}
 
-The translation of the MiniRISC Control-Flow Graph is done in a single depth-first traversal of the graph. This implies that the final block's code is not necessarily the last block in the generated code. This is why we define a reserved label $\verb|exit_label|$ to which a new unconditional jump appended to the generated code of the CFG's final block will jump to, and the exit label is added to an artificial last instruction which does nothing. This implementation would allow us to incorporate $\verb|return|$ statements in the language easily.
+The translation of the MiniRISC Control-Flow Graph is done in a single depth-first traversal of the graph. This implies that the final block's code is not necessarily the last block in the generated code. This is why we define a reserved label $\verb|exit_label|$ to which a new unconditional jump appended to the generated code of the CFG's final block will jump to, and the exit label is added to an artificial last instruction which does nothing. This implementation would allow us to incorporate $\verb|return|$ statements in the language easily by jumping to the \href{https://github.com/wuacs/unipi-lci/blob/a630eb254e4eadffe7290cbda91d80f921402fde/project/src/lib/target_code.ml#L15}{exit label}.
 
 \section{How to use}
 
