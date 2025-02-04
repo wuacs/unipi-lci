@@ -1,0 +1,70 @@
+main	loadI  0 => 1
+copy 0 => 1
+loadI  10 => 2
+store 1 => 2
+loadI  2 => 1
+loadI  10 => 2
+load 2 => 2
+less 2 1 => 1
+not 1 => 1
+cjump 1 l1 l5
+l1	loadI  0 => 1
+loadI  1 => 2
+loadI  8 => 3
+store 2 => 3
+loadI  8 => 2
+load 2 => 2
+loadI  9 => 3
+store 2 => 3
+jump l2
+l2	copy 0 => 2
+loadI  5 => 3
+store 2 => 3
+loadI  2 => 2
+loadI  4 => 3
+store 2 => 3
+loadI  4 => 2
+load 2 => 2
+loadI  5 => 3
+load 3 => 3
+less 3 2 => 2
+loadI  6 => 3
+store 2 => 3
+loadI  6 => 2
+load 2 => 2
+not 2 => 2
+loadI  7 => 3
+store 2 => 3
+cjump 2 l3 l4
+l3	loadI  2 => 2
+store 1 => 2
+loadI  2 => 1
+load 1 => 1
+loadI  3 => 2
+store 1 => 2
+loadI  1 => 2
+store 1 => 2
+loadI  9 => 2
+load 2 => 2
+copy 2 => 1
+loadI  1 => 2
+load 2 => 2
+add 2 1 => 1
+loadI  3 => 2
+load 2 => 2
+loadI  0 => 3
+store 2 => 3
+loadI  0 => 2
+load 2 => 2
+loadI  9 => 3
+store 2 => 3
+subI 0 1 => 0
+jump l2
+l4	nop
+jump l6
+l5	loadI  0 => 0
+copy 0 => 1
+jump l6
+l6	nop
+jump l-1
+l-1	nop

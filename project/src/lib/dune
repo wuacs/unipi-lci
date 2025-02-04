@@ -2,6 +2,12 @@
 
 (ocamllex minityfun_lexer)
 
+(ocamllex minirisc_lexer)
+
+(menhir
+ (modules minirisc_parser)
+ (explain true))
+
 (menhir
  (modules miniimp_parser)
  (explain true))
@@ -34,7 +40,7 @@
 (library
  (name target_code)
  (public_name target_code)
- (modules target_code)
+ (modules target_code minirisc_lexer minirisc_parser)
  (libraries data_flow_analysis cfg minirisc))
 
 (library

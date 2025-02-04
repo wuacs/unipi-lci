@@ -19,15 +19,23 @@ type comm =
   | Simple of scomm
   | Jump of label
   | Cjump of register * label * label
+  
 
 module RegisterSet : Set.S with type elt = register
 module RegisterMap : Map.S with type key = register
 module LabelMap : Map.S with type key = label
 module MemoryMap : Map.S with type key = memory_address
 
+type block = comm List.t
+type program = Program of (block Array.t * int LabelMap.t) [@@unboxed]
+
 val in_register : register
 val out_register : register
 val first_free_register : register
+val main_label : label
+val exit_label : label
+
+val get_program : program -> (block Array.t * int LabelMap.t)
 val get_reg_id : register -> int
 val get_label_val : label -> int
 val get_memory_address : memory_address -> int

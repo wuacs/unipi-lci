@@ -6,6 +6,8 @@ type memory_loc = Register of register | Memory of memory_address
 let in_register = Id 0
 let out_register = Id 1
 let first_free_register = Id 2
+let main_label = Label 0
+let exit_label = Label (-1)
 let get_reg_id r = match r with Id l -> l
 let get_label_val l = match l with Label v -> v
 let get_memory_address m = match m with Address v -> v
@@ -25,7 +27,11 @@ end)
 module LabelMap = Map.Make (struct
   type t = label
 
-  let compare x y = compare (get_label_val x) (get_label_val y)
+  let compare x y =
+    if x = exit_label && y = exit_label then 0 else
+    if x = exit_label then 1 else
+    if y = exit_label then -1 else
+    compare (get_label_val x) (get_label_val y)
 end)
 
 module MemoryMap = Map.Make (struct
@@ -52,6 +58,9 @@ type comm =
   | Jump of label
   | Cjump of register * label * label
 
+type block = comm List.t
+type program = Program of (block Array.t * int LabelMap.t) [@@unboxed]
+  
 let minirisc_command_to_string (stmt : comm) : string =
   let right_hand_side_separator = " => " in
   let operand_separator = " " in
@@ -103,5 +112,9 @@ let minirisc_command_to_string (stmt : comm) : string =
   | Simple scomm -> minirisc_simple_to_string scomm
   | Jump label -> Printf.sprintf "jump l%d" (get_label_val label)
   | Cjump (reg, l1, l2) ->
-      Printf.sprintf "cjump r%d l%d l%d" (get_reg_id reg) (get_label_val l1)
+      Printf.sprintf "cjump %d l%d l%d" (get_reg_id reg) (get_label_val l1)
         (get_label_val l2)
+
+let get_program prg = 
+  match prg with
+  | Program p -> p

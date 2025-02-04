@@ -38,9 +38,15 @@ let eval_target_code () =
           Printf.printf "Value is: %d\n"
             (eval_risc_cfg
                (miniimp_cfg_to_minirisc (translate_miniimp prog) ~input_variable:prog.input ~output_variable:prog.output)
-               ~registers:10
+               ~registers:4
                ~value:(int_of_string input_value))
       | None -> print_string "Error while parsing")
+
+let interpret_target_code () =
+  let input_file = Sys.argv.(2) in
+  let value = int_of_string (Sys.argv.(3)) in
+  Printf.printf "Value is: %d\n" (interpret_from_file ~input_file:input_file ~value:value)
+      
 
 let info_string =
   "To generate target code for a MiniImp program, use the following command.\n\n\
@@ -57,7 +63,9 @@ let info_string =
    To evaluate target code for a MiniImp program with a chosen input value  \n\
    and output to stdout a string representation of its output, use:\n\
    (The number of registers used is 4 and no undefined check is done)\n\n\
-   dune exec target eval input_file_path x\n\n"
+   dune exec target eval input_file_path x\n\n
+   To execute a file written in MiniRISC and output its result on stdout(x is the input to the miniimp program)\n\
+   dune exec target interpret input_file_path x "
 
 let () =
   let fail_helper ?(additional_info = "Unspecified error") () =
@@ -75,4 +83,9 @@ let () =
       if Array.length Sys.argv <> 4 then
         fail_helper ~additional_info:"Evaluation takes 2 parameters" ()
       else eval_target_code ()
+  | "interpret" -> 
+      if Array.length Sys.argv <> 4 then 
+        fail_helper ~additional_info:"Interpret takes 2 parameters" ()
+      else 
+      interpret_target_code ()
   | _ -> fail_helper ()

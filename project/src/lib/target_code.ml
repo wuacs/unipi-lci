@@ -8,11 +8,6 @@ type mriscfg = scomm control_flow_graph
 type spill_metric = mriscfg -> register -> int
 type vertex = { id : register; degree : int; cost : int; color : int }
 
-let first (f, _, _) = f
-let second (_, s, _) = s
-let third (_, _, t) = t
-let main_label = Minirisc.Label 0
-let exit_label = Minirisc.Label (-1)
 let uncolored_register = Minirisc.Id 10000
 
 module VertexStack = struct
@@ -173,7 +168,7 @@ let replace_register (instruction : scomm) (mapping : register -> register) =
 let flag_spilled_register reg = Id (-(get_reg_id reg + 1))
 
 let unflag_spill_register reg = Id (-get_reg_id reg - 1)
-let check_if_spilled_register reg = if get_reg_id reg > 0 then false else true
+let check_if_spilled_register reg = if get_reg_id reg >= 0 then false else true
 
 let rec chaitin_briggs_step1 (interference_graph : RegisterSet.t RegisterMap.t)
     (registers_left : RegisterSet.t) (gi : VertexSetByDegree.t)
@@ -554,8 +549,9 @@ let interference_graph_dot (cfg : mriscfg) : string =
       instruction to execute
     + A {!LabelMap} to integers mapping any given label to the instruction that
       label is applied to. *)
-let translate_cfg_to_target (cfg : mriscfg) (k : int) :
-    comm list * int LabelMap.t =
+let translate_cfg_to_target (cfg : mriscfg) (k : int) : program =
+  let num_of_blocks = (NodeMap.cardinal cfg.code) + 1 in
+  let block_array = Array.make num_of_blocks [] in
   let generate_input_instructions input_loc free =
     match input_loc with
     | Memory m ->
@@ -588,13 +584,12 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int) :
   in
   (* Labels are the nodes identifiers! 
   Since nodes identifiers are positive numbers the exit label is set to a negative number.*)
-  let rec rec_helper (cfg : mriscfg) (mapping : int Minirisc.LabelMap.t)
-      (node : node) (curr_pos : int) :
-      Minirisc.comm list * int Minirisc.LabelMap.t * int =
+  let rec rec_helper (cfg : mriscfg) (mapping : int LabelMap.t)
+      (node : node) (curr_idx : int) : (int * int LabelMap.t) =
     match node with
     | Label l -> (
-        if Minirisc.LabelMap.mem (Minirisc.Label l) mapping then
-          ([], Minirisc.LabelMap.empty, curr_pos - 1)
+        if LabelMap.mem (Minirisc.Label l) mapping then
+          (curr_idx - 1, mapping)
         else
           let blk_reversed = List.rev (NodeMap.find node cfg.code) in
           (* reversing for efficiency *)
@@ -607,58 +602,48 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int) :
                 | None -> None)
               blk_reversed
           in
-          let blk_len = List.length blk_mapped_reversed in
           (* flag the current block with a label, corresponding to its node identifier*)
-          let mapping = LabelMap.add (Minirisc.Label l) curr_pos mapping in
+          let mapping = LabelMap.add (Minirisc.Label l) curr_idx mapping in
           match NodeMap.find node cfg.edges with
           | Uncond x ->
-              let xblock = rec_helper cfg mapping x (curr_pos + blk_len + 1) in
-              (* make the block start after the current one *)
-              ( first xblock
-                @ (Minirisc.Jump (Label (access_node x)) :: blk_mapped_reversed),
-                LabelMap.union
-                  (fun _ k1 k2 ->
-                    if k1 <> k2 then failwith "The same has been labeled twice"
-                    else Some k1)
-                  mapping (second xblock),
-                third xblock )
+              let xblock = rec_helper cfg mapping x (curr_idx + 1) in
+              block_array.(curr_idx) <- (List.rev ((Minirisc.Jump (Label (access_node x)))::blk_mapped_reversed));
+              xblock
           | Cond (x1, x2) -> (
-              let x1block =
-                rec_helper cfg mapping x1 (curr_pos + blk_len + 1)
+              let (idx, new_map) =
+                rec_helper cfg mapping x1 (curr_idx + 1)
               in
-              let x2block =
+              let (idx2, new_map) =
                 rec_helper cfg
                   (LabelMap.union
                      (fun _ k1 k2 ->
                        if k1 <> k2 then
                          failwith "The same has been labeled twice"
                        else Some k1)
-                     mapping (second x1block))
+                     mapping new_map)
                   x2
-                  (third x1block + 1)
+                  (idx + 1)
+              in
+              let last_instruction = List.hd blk_reversed 
               in
               let guard_register = match
                 Data_flow_analysis.Utils.extract_written_register
-                  (List.hd blk_reversed)
+                  last_instruction
               with
               | None ->
-                  (match List.hd blk_reversed with
+                  (match last_instruction with
                   | Store(r1, _) -> r1 
                   | _ -> failwith
                   "Ill-formed Control Flow Graph, the last instruction \
                    before a fork should be a write instruction or a store")
               | Some wr -> wr
               in
-              ( first x2block @ first x1block
-                    @ Minirisc.Cjump
-                        (guard_register, Label (access_node x1), Label (access_node x2))
-                      :: blk_mapped_reversed,
-                    second x2block,
-                    third x2block ))
+              block_array.(curr_idx) <- List.rev ((Minirisc.Cjump
+              (guard_register, Label (access_node x1), Label (access_node x2)))::blk_mapped_reversed);
+              (idx2, new_map))
           | None ->
-              ( Jump exit_label :: blk_mapped_reversed,
-                mapping,
-                curr_pos + blk_len ))
+              block_array.(curr_idx) <- List.rev ((Minirisc.Jump exit_label :: blk_mapped_reversed));
+              (curr_idx, mapping))
   in
   let optimized_cfg, input_location, output_location =
     chaitin_briggs_algorithm cfg k cost_metric
@@ -675,44 +660,30 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int) :
       @ generate_output_instructions output_location first_free_register)
       updated_entry
   in
-  let reversed_code, label_map, _ =
+  let _, label_map =
     rec_helper
       { optimized_cfg with code = code_injected }
       LabelMap.empty optimized_cfg.entry 0
   in
-  let number_of_instructions = List.length reversed_code in
-  ( List.rev (Simple Nop :: reversed_code),
-    LabelMap.add exit_label number_of_instructions label_map )
-
+  block_array.(num_of_blocks-1) <- [Simple(Nop)];
+  Program (block_array, LabelMap.add exit_label (num_of_blocks-1) label_map)
 let generate_target_code_string cfg k =
-  let target_code, label_map = translate_cfg_to_target cfg k in
+  let block_array, label_map = get_program (translate_cfg_to_target cfg k) in
   (* Labels have an instruction number associated, so we sort them and while
   we convert each instruction to a string we check whether the current instruction has 
   a correspondent label attached *)
-  let labels = Array.of_list (LabelMap.bindings label_map) in
-  Array.sort (fun pos1 pos2 -> compare (snd pos1) (snd pos2)) labels;
-  first
-    (List.fold_left
-       (fun (str, curr_pos, curr_label) instruction ->
-         let to_append = minirisc_command_to_string instruction ^ "\n" in
-         let label = Array.get labels curr_label in
-         if curr_pos = snd label then
-           let label_str =
-             Printf.sprintf "%s:"
-               (if fst label = main_label then "main"
-                else "l" ^ string_of_int (get_label_val (fst label)))
-           in
-           ( str ^ Printf.sprintf "%s\t" label_str ^ to_append,
-             curr_pos + 1,
-             (curr_label + 1) mod Array.length labels )
-         else (str ^ to_append, curr_pos + 1, curr_label))
-       ("", 0, 0) target_code)
+  List.fold_left
+    (fun str (label, idx) ->  
+      str ^ (fst (List.fold_left (fun (str1, first) command -> 
+        let lbl = 
+          if first then (if label = main_label then "main\t" else (Printf.sprintf "l%d\t" (get_label_val label))) else "" 
+        in
+        (str1 ^ lbl ^ (minirisc_command_to_string command ) ^ "\n", false)) ("", true) (block_array.(idx)))))
+        ""  (LabelMap.bindings label_map)
 
-let eval_risc_cfg cfg ~registers:k ~value:input =
-  (* Function to generate initialization code for the input variable, *)
-  let instructions, label_mapping = translate_cfg_to_target cfg k in
-  let array_instructions = Array.of_list instructions in
-  (* Helper function to fetch a value from memory *)
+let eval_minirisc_program (program : program) (input : int): int = 
+  let (array_instructions, label_mapping) = get_program program
+  in
   let fetch_memory memory address =
     try MemoryMap.find address memory with Not_found -> 0
   in
@@ -773,7 +744,6 @@ let eval_risc_cfg cfg ~registers:k ~value:input =
     | Jump label ->
         let label_val = label in
         (memory, registers, LabelMap.find label_val label_mapping)
-        (* Assuming PC is in Id 0 *)
     | Cjump (r, l1, l2) ->
         let v = RegisterMap.find r registers in
         let next_label = if v <> 0 then l1 else l2 in
@@ -782,19 +752,23 @@ let eval_risc_cfg cfg ~registers:k ~value:input =
 
   (* Function to iterate over instructions *)
   let rec run pc memory registers =
-    if pc <> Array.length array_instructions then
-      let instruction = array_instructions.(pc) in
-      let memory, registers, pc =
-        execute_instruction instruction memory registers pc
+    (* Exits when we have arrived at last block *)
+    if pc <> (Array.length array_instructions - 1) then
+      let instructions = array_instructions.(pc) in
+      let (memory, registers, pc) = List.fold_left (fun (memory, registers, pc) instruction -> 
+        execute_instruction instruction memory registers pc) (memory, registers, pc) instructions
       in
       let next_pc = pc in
       run next_pc memory registers
     else (memory, registers)
   in
   let _, registers =
-    run 0 MemoryMap.empty (RegisterMap.singleton in_register input)
+    run (LabelMap.find main_label label_mapping) MemoryMap.empty (RegisterMap.singleton in_register input)
   in
   RegisterMap.find out_register registers
+
+let eval_risc_cfg cfg ~registers:k ~value:input =
+  (eval_minirisc_program (translate_cfg_to_target cfg k) input)
 
 let generate_target_code_file ?(register_number = 4) miniimp_file_path
     ~check_undefinedness ~target_file_path : unit =
@@ -843,3 +817,10 @@ let compile_and_run_imp_from_file ?(register_number = 4) miniimp_file_path
       | None ->
           failwith
             (Printf.sprintf "Error while parsing file %s\n" miniimp_file_path))
+let interpret_from_file ~input_file ~value  =
+  let in_channel = open_in input_file in
+  Fun.protect
+    ~finally:(fun _ -> close_in in_channel)
+    (fun _ ->
+        let x = Minirisc_parser.prog Minirisc_lexer.read (Lexing.from_channel in_channel) in
+        eval_minirisc_program x value)

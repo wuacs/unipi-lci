@@ -1,6 +1,3 @@
-open Miniimp.ImpAst
-open Minirisc
-
 type node = Label of int [@@unboxed]
 
 module NodeSet : Set.S with type elt = node
@@ -22,12 +19,12 @@ type 'a control_flow_graph = {
   code : 'a list NodeMap.t;
 }
 
-val translate_miniimp : program -> miniimp_simple control_flow_graph
+val translate_miniimp : Miniimp.ImpAst.program -> Miniimp.ImpAst.miniimp_simple control_flow_graph
 (** Taken a {!Miniimp.ImpAst.program} and returns its control-flow graph. *)
 
 val miniimp_cfg_to_minirisc :
-  miniimp_simple control_flow_graph -> 
-  input_variable:string -> output_variable:string -> scomm control_flow_graph
+  Miniimp.ImpAst.miniimp_simple control_flow_graph -> 
+  input_variable:string -> output_variable:string -> Minirisc.scomm control_flow_graph
 (** This function converts a Miniimp's control flow graph in a MiniRISC's control flow graph,
     which assumes an infinite number of registers. 
     The two strings in input are the input and output variables of the miniimp program.
@@ -35,12 +32,12 @@ val miniimp_cfg_to_minirisc :
     {b target_code} library which optimizes the control flow graph to be usable
     on machines with limited registers. *)
 
-val miniimp_cfg_to_dot : miniimp_simple control_flow_graph -> string
+val miniimp_cfg_to_dot : Miniimp.ImpAst.miniimp_simple control_flow_graph -> string
 (** This function returns a string in the Dot language, representing the MiniImp
     control flow graph in input.
     @see <https://en.wikipedia.org/wiki/DOT_(graph_description_language)> *)
 
-val minirisc_cfg_to_dot : scomm control_flow_graph -> string
+val minirisc_cfg_to_dot : Minirisc.scomm control_flow_graph -> string
 (** This function returns a string in the Dot language, representing the
     MiniRISC control flow graph in input.
     @see <https://en.wikipedia.org/wiki/DOT_(graph_description_language)> *)

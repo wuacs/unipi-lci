@@ -26,7 +26,7 @@ type ast =
   | Val of value
   | Var of var
 
-(** Type representing the type of a term. {b Not sure about naming conventions?}
+(** Type representing the type of a term. 
 *)
 and tau =
   | Integer_t

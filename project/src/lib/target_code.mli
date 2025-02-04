@@ -27,7 +27,7 @@ val cost_metric : spill_metric
     operations done on it throughout whole control flow graph. Since write
     operations require more instructions they are counted twice. *)
 
-val translate_cfg_to_target : mriscfg -> int -> comm List.t * int LabelMap.t
+val translate_cfg_to_target : mriscfg -> int -> program
 (** Generates the target code for the given MiniRISC Control Flow Graph using at
     most {b k} registers.
 
@@ -84,3 +84,9 @@ val compile_and_run_imp_from_file :
 
     This function, if it does not fail or the program does not diverge, returns
     the integer corresponding to the {b out} variable. *)
+
+val interpret_from_file :
+  input_file:string -> 
+  value:int ->
+  int
+(** Takes a filepath of a MiniRISC file and runs the MiniRISC program *)
