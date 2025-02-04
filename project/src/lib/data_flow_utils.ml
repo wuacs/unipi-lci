@@ -88,7 +88,9 @@ let compute_top (cfg : Minirisc.scomm Cfg.control_flow_graph) : RegisterSet.t =
         List.fold_left
           (fun accumulated_registers stmt ->
             let blk_res = extract_read_registers stmt in
-            RegisterSet.union blk_res accumulated_registers)
+            match extract_written_register stmt with
+            | Some r -> RegisterSet.add r (RegisterSet.union blk_res accumulated_registers)
+            | None -> RegisterSet.union blk_res accumulated_registers)
           RegisterSet.empty stmts
       in
       RegisterSet.union res set)
@@ -102,4 +104,4 @@ let initialize_with_top (cfg : Minirisc.scomm Cfg.control_flow_graph) :
     cfg.nodes Cfg.NodeMap.empty
 
 let get_top (cfg : Minirisc.scomm Cfg.control_flow_graph) : RegisterSet.t =
-  compute_top cfg
+  (RegisterSet.add Minirisc.out_register (RegisterSet.add Minirisc.in_register (compute_top cfg)))

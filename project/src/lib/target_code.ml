@@ -173,7 +173,7 @@ let replace_register (instruction : scomm) (mapping : register -> register) =
 let flag_spilled_register reg = Id (-(get_reg_id reg + 1))
 
 let unflag_spill_register reg = Id (-get_reg_id reg - 1)
-let check_if_spilled_register reg = if get_reg_id reg >= 0 then false else true
+let check_if_spilled_register reg = if get_reg_id reg > 0 then false else true
 
 let rec chaitin_briggs_step1 (interference_graph : RegisterSet.t RegisterMap.t)
     (registers_left : RegisterSet.t) (gi : VertexSetByDegree.t)
@@ -309,14 +309,13 @@ let apply_spilling_to_cfg (cfg : mriscfg) (spilled_registers : RegisterSet.t)
                  Data_flow_analysis.Utils.extract_read_registers instruction
                in
                let written =
-                 Data_flow_analysis.Utils.extract_written_register instruction
-               in
-               let available_registers =
+                 Data_flow_analysis.Utils.extract_written_register instruction in
+               let available_registers_for_read =
                  RegisterSet.diff available_registers read
                in
                let prefix_list, reading_register =
                  if RegisterSet.mem register read then
-                   match RegisterSet.choose_opt available_registers with
+                   match RegisterSet.choose_opt available_registers_for_read with
                    | Some r ->
                        ( [
                            Minirisc.LoadI (get_memory_address memory_location, r);
@@ -353,7 +352,7 @@ let apply_spilling_to_cfg (cfg : mriscfg) (spilled_registers : RegisterSet.t)
                          | None ->
                              raise
                                (NotEnoughRegisters
-                                  "Not enough registers to write spilled \
+                                  "1Not enough registers to write spilled \
                                    register"))
                      | None ->
                          let write_in_register =
@@ -362,7 +361,7 @@ let apply_spilling_to_cfg (cfg : mriscfg) (spilled_registers : RegisterSet.t)
                            | None ->
                                raise
                                  (NotEnoughRegisters
-                                    "Not enough registers for writing spilled \
+                                    "2Not enough registers for writing spilled \
                                      register")
                          in
                          let address_register =
@@ -375,7 +374,7 @@ let apply_spilling_to_cfg (cfg : mriscfg) (spilled_registers : RegisterSet.t)
                            | None ->
                                raise
                                  (NotEnoughRegisters
-                                    "Not enough registers for writing address \
+                                    "3Not enough registers for writing address \
                                      for storing")
                          in
                          ( [
@@ -431,7 +430,7 @@ let apply_color_map_to_cfg (cfg : mriscfg) (color_map : register RegisterMap.t)
   let replace_register_with_map reg =
     match RegisterMap.find_opt reg color_map with
     | Some new_reg -> new_reg
-    | None -> failwith "There should be a mapping"
+    | None -> failwith (Printf.sprintf "There should be a mapping for register %d" (get_reg_id reg))
   in
   let replace_block blk_code =
     List.map
@@ -638,18 +637,21 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int) :
                   x2
                   (third x1block + 1)
               in
-              match
+              let guard_register = match
                 Data_flow_analysis.Utils.extract_written_register
                   (List.hd blk_reversed)
               with
               | None ->
-                  failwith
-                    "Ill-formed Control Flow Graph, the last instruction \
-                     before a fork should be a write instruction"
-              | Some wr ->
-                  ( first x2block @ first x1block
+                  (match List.hd blk_reversed with
+                  | Store(r1, _) -> r1 
+                  | _ -> failwith
+                  "Ill-formed Control Flow Graph, the last instruction \
+                   before a fork should be a write instruction or a store")
+              | Some wr -> wr
+              in
+              ( first x2block @ first x1block
                     @ Minirisc.Cjump
-                        (wr, Label (access_node x1), Label (access_node x2))
+                        (guard_register, Label (access_node x1), Label (access_node x2))
                       :: blk_mapped_reversed,
                     second x2block,
                     third x2block ))

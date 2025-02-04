@@ -48,4 +48,4 @@ arit_expr:
     | t = arit_expr PLUS t1 = arit_expr {Plus(t, t1)}
     | t = arit_expr MINUS t1 = arit_expr {Minus(t, t1)}
     | t = arit_expr MUL t1 = arit_expr {Times(t, t1)}
-    | t = VAR {Substitue(t)} 
+    | t = VAR {Substitue(t)}

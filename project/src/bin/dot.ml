@@ -122,7 +122,7 @@ let info_string =
    unoptimized translation of a MiniImp program to MiniRISC, use:\n\n\
    dune exec dot interference input_file output_file\n\n\n\
    If you wish to produce a dot compliant file showing the control flow graph \
-   of a optimizedtranslation of a MiniImp program to MiniRISC for a target \
+   of a optimized translation of a MiniImp program to MiniRISC for a target \
    architecture with at most `registers` \n\
    number of registers then use:\n\n\n\
    dune exec dot optimized input_file_path output_file_path registers\n\n\
