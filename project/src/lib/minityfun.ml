@@ -10,9 +10,6 @@ let update_type_bind (var : var) (tau : tau) (type_env : tau Env_map.t) :
     tau Env_map.t =
   Env_map.add var tau type_env
 
-let remove_type_bind (var : var) (type_env : tau Env_map.t) : tau Env_map.t =
-  Env_map.remove var type_env
-
 let get_type_bind (var : var) (type_env : tau Env_map.t) : tau option =
   Env_map.find_opt var type_env
 
@@ -23,16 +20,6 @@ let get_string_of_operator (operator : op) =
   | And -> "and"
   | Mul -> "*"
   | Less -> "<="
-
-let unify (env1 : tau Env_map.t) (env2 : tau Env_map.t) : tau Env_map.t =
-  Env_map.merge
-    (fun _ k1 k2 ->
-      match (k1, k2) with
-      | Some v1, Some v2 -> if compatible v1 v2 then Some v1 else None
-      | Some v1, None -> Some v1
-      | None, Some v2 -> Some v2
-      | None, None -> None)
-    env1 env2
 
 let get_codomain (operation : op) =
   match operation with
@@ -68,19 +55,19 @@ let type_of_literal (value : value) : tau =
       failwith "Only integer and boolean literals are allowed in this context."
 
 let type_check (ast : ast) : tau option =
-  let rec rec_type_check (ast : ast) (env : tau Env_map.t) : tau * tau Env_map.t
+  let rec rec_type_check (ast : ast) (env : tau Env_map.t) : tau
       =
     match ast with
     | Fun (pname, ptype, a1) ->
-        let t, re = rec_type_check a1 (update_type_bind pname ptype env) in
-        (Closure_t (ptype, t), remove_type_bind pname re)
-    | LetFun (fname, pname, ptype, a1, a2) -> (
-        match ptype with
+        let t = rec_type_check a1 (update_type_bind pname ptype env) in
+        Closure_t (ptype, t)
+    | LetFun (fname, pname, ftype, a1, a2) -> (
+        match ftype with
         | Closure_t (domain, range) ->
-            let t, re =
+            let t =
               rec_type_check a1
                 (update_type_bind pname domain
-                   (update_type_bind fname ptype env))
+                   (update_type_bind fname ftype env))
             in
             if compatible range t <> true then
               raise
@@ -90,22 +77,18 @@ let type_check (ast : ast) : tau option =
                        %s"
                       fname (get_string_of_type range) (get_string_of_type t)))
             else
-              let t1, re1 = rec_type_check a2 re in
-              (t1, remove_type_bind fname re1)
+              rec_type_check a2 (update_type_bind fname ftype env)
         | _ ->
             raise
               (TypeError
                  "With a LetFun syntax you need to specify the type of a \
                   function"))
-    | Let (pname, a1, a2) ->
-        let t, re = rec_type_check a1 env in
-        let t1, re1 =
-          rec_type_check a2 (update_type_bind pname t (unify re env))
-        in
-        (t1, remove_type_bind pname re1)
+    | Let (var, a1, a2) ->
+        let t = rec_type_check a1 env in
+        rec_type_check a2 (update_type_bind var t env)
     | App (a1, a2) -> (
-        let t, re = rec_type_check a2 env in
-        let t1, re1 = rec_type_check a1 (unify re env) in
+        let t = rec_type_check a2 env in
+        let t1 = rec_type_check a1 env in
         match t1 with
         | Closure_t (d, c) ->
             if compatible d t <> true then
@@ -115,15 +98,15 @@ let type_check (ast : ast) : tau option =
                       "Domain does not correspond, expected a %s instead got a \
                        %s"
                       (get_string_of_type d) (get_string_of_type t)))
-            else (c, re1)
+            else c
         | t ->
             raise
               (TypeError
                  (Printf.sprintf "Tried to apply to type %s"
                     (get_string_of_type t))))
     | Op (a1, op, a2) ->
-        let t, re = rec_type_check a1 env in
-        let t1, re1 = rec_type_check a2 (unify re env) in
+        let t = rec_type_check a1 env in
+        let t1 = rec_type_check a2 env in
         let operand_type = get_domain op t in
         if compatible t operand_type && compatible t1 operand_type <> true then
           raise
@@ -133,9 +116,9 @@ let type_check (ast : ast) : tau option =
                    hand side has type %s, right hand side %s"
                   (get_string_of_operator op)
                   (get_string_of_type t) (get_string_of_type t1)))
-        else (get_codomain op, re1)
+        else (get_codomain op)
     | If (a1, a2, a3) ->
-        let t, re = rec_type_check a1 env in
+        let t = rec_type_check a1 env in
         if compatible t Boolean_t <> true then
           raise
             (TypeError
@@ -143,8 +126,8 @@ let type_check (ast : ast) : tau option =
                   "If condition must be of Boolean_t type, instead has type %s"
                   (get_string_of_type t)))
         else
-          let t1, re1 = rec_type_check a2 (unify re env) in
-          let t2, re2 = rec_type_check a3 (unify re1 env) in
+          let t1 = rec_type_check a2 env in
+          let t2 = rec_type_check a3 env in
           if compatible t1 t2 <> true then
             raise
               (TypeError
@@ -152,18 +135,18 @@ let type_check (ast : ast) : tau option =
                     "If branches must have the same type. `True` branch has \
                      type %s and `False` branch has type %s"
                     (get_string_of_type t1) (get_string_of_type t2)))
-          else (t1, unify re2 env)
-    | Val value -> (type_of_literal value, env)
+          else t1
+    | Val value -> type_of_literal value
     | Var var -> (
         match get_type_bind var env with
-        | Some t -> (t, env)
+        | Some t -> t
         | None ->
             raise
               (TypeError
                  ("Variable " ^ var ^ " is unbound in the current environment."))
         )
   in
-  try Some (fst (rec_type_check ast Env_map.empty))
+  try Some (rec_type_check ast Env_map.empty)
   with TypeError msg ->
     print_endline msg;
     None
