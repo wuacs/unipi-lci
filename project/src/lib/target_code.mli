@@ -46,11 +46,6 @@ val translate_cfg_to_target : mriscfg -> int -> program
     + A {!memory_loc} representing the memory location of the input variable
     + A {!memory_loc} representing the memory location the output variable *)
 
-val generate_target_code_string : mriscfg -> int -> string
-(** Utility function which translates a mriscfg into a parsable string of
-    MiniRISC code which uses only the limited number of registers given as
-    second argument *)
-
 val generate_target_code_file :
   ?register_number:int ->
   string ->
@@ -58,10 +53,11 @@ val generate_target_code_file :
   target_file_path:string ->
   unit
 (** Takes as first argument the path of a MiniImp's file and
-    + An optionally a number of registers, the target code will then suppose
-      only such an amount of registers, which will be labelled from 0 to
-      ({b register_number})-1. The number must be >= 4, otherwise this function
-      fails. The default value is 4.
+    + An optional argument regarding the number of registers:
+      the target code will then suppose only such an amount of registers, 
+      which will be labelled from 0 to ({b register_number})-1.
+      The number must be >= 4, otherwise this function fails. 
+      The default value is 4.
     + A boolean indicating whether or not to perform a static analysis to check
       for undefined variables. If a variable is deemed possibly undefined, this
       function will fail.
