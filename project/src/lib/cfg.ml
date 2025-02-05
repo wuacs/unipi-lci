@@ -115,7 +115,7 @@ let translate_miniimp (program : ImpAst.program) :
       (command : ImpAst.command) : ImpAst.miniimp_simple control_flow_graph =
     match command with
     | Assign (x, y) ->
-        create_cfg cfg.nodes cfg.edges cfg.entry cfg.entry
+        create_cfg (add_node_set cfg.entry cfg.nodes) cfg.edges cfg.entry cfg.entry
           (push_instruction cfg.entry (ImpAst.Assignment (x, y)) cfg.code)
     | Sequence (c1, c2) ->
         let cfg_c1 =
@@ -144,9 +144,8 @@ let translate_miniimp (program : ImpAst.program) :
         let cfg_c1 =
           translate_command
             (create_cfg cfg.nodes cfg.edges
-               (get_next_uid_node cfg.entry)
-               (* Cannot merge it with the guard block *)
-               dummy_node_val guard_blk)
+               (get_next_uid_node cfg.entry) (* Get next uid for start *)
+               dummy_node_val guard_blk) (* The code map is the last one defined *)
             c1
         in
         let cfg_c2 =
@@ -162,7 +161,7 @@ let translate_miniimp (program : ImpAst.program) :
         in
         create_cfg
           (add_list_node_to_set
-             [ ifs_exit; cfg_c1.entry; cfg_c1.exit; cfg_c2.entry; cfg_c2.exit ]
+             [ ifs_exit; cfg_c1.entry; cfg_c1.exit; cfg_c2.entry; cfg_c2.exit; cfg.entry ]
              cfg_c2.nodes)
           (add_edge_bi cfg.entry cfg_c1.entry cfg_c2.entry
              (add_list_edges_mono
@@ -190,7 +189,7 @@ let translate_miniimp (program : ImpAst.program) :
         in
         create_cfg
           (add_list_node_to_set
-             [ whiles_exit; cfg_c1.exit; cfg_c1.entry; guard_block ]
+             [ whiles_exit; cfg_c1.exit; cfg_c1.entry; guard_block; cfg.entry ]
              cfg_c1.nodes)
           (add_edge_bi guard_block cfg_c1.entry whiles_exit
              (add_list_edges_mono
@@ -237,8 +236,7 @@ let fold_left_code_blocks (node : node) (map : 'a list NodeMap.t)
   let x = NodeMap.find_opt node map in
   match x with
   | Some l ->
-      let helper (stmt : 'a) : 'b = map_statement stmt in
-      List.fold_left (fun acc x -> fold_fun acc (helper x)) base_value l
+      List.fold_left (fun acc x -> fold_fun acc (map_statement x)) base_value l
   | None -> on_empty_block
 
 let miniimp_cfg_to_dot (cfg : ImpAst.miniimp_simple control_flow_graph) : string

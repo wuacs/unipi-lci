@@ -89,4 +89,4 @@ val interpret_from_file :
   input_file:string -> 
   value:int ->
   int
-(** Takes a filepath of a MiniRISC file and runs the MiniRISC program *)
+(** Takes a filepath of a MiniRISC file and runs the MiniRISC program and prints the result to stdout *)
