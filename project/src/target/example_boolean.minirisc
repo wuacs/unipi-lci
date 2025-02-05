@@ -1,0 +1,11 @@
+main	loadI  3 => 0
+less 0 0 => 0
+cjump 0 l1 l2
+l1	loadI  3 => 0
+jump l3
+l2	loadI  2 => 0
+jump l3
+l3	nop
+copy 0 => 1
+jump l-1
+l-1	nop

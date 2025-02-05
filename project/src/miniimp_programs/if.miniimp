@@ -1,0 +1,8 @@
+def main with input in output out as
+    x := in;
+    if not x < 5 and x < 10 then (
+        out := 1
+    )
+    else (
+        out := 0
+    )

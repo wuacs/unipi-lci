@@ -1,0 +1,26 @@
+main	loadI  1 => 1
+store 0 => 1
+loadI  1 => 0
+load 0 => 0
+copy 0 => 1
+loadI  5 => 0
+less 1 0 => 0
+not 0 => 1
+loadI  1 => 0
+load 0 => 0
+loadI  0 => 1
+store 0 => 1
+loadI  10 => 1
+loadI  0 => 0
+load 0 => 0
+less 0 1 => 1
+and 0 1 => 1
+cjump 1 l1 l2
+l1	loadI  1 => 0
+jump l3
+l2	loadI  0 => 0
+jump l3
+l3	nop
+copy 0 => 1
+jump l-1
+l-1	nop
