@@ -377,7 +377,7 @@ let convert_miniimp_arithmetic_to_minirisc (available : Minirisc.register)
         | ImpAst.Minus (x, y) ->
             convert_minirisc_bop register (Integer x, Integer y) vars
               helper_arithemtic
-              (fun x y z -> [ Minirisc.Rtoi (Minirisc.SubI, y, x, z) ])
+              (fun x y z -> [ Minirisc.Rtoi (Minirisc.SubI, y, x, z); Minirisc.Rtoi (Minirisc.MultI, z, -1, z)])
               (fun x y z -> [ Minirisc.Rtoi (Minirisc.SubI, x, y, z) ])
               (fun x y z -> [ Minirisc.Rtor (Minirisc.Sub, x, y, z) ])
         | ImpAst.Times (x, y) ->

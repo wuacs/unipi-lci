@@ -575,11 +575,6 @@ let translate_cfg_to_target (cfg : mriscfg) (k : int) : program =
         | Minirisc.Copy ->
             if get_reg_id r1 = get_reg_id r2 then None else Some scomm
         | _ -> Some scomm)
-    | Minirisc.Rtoi (op, r1, i, r2) -> (
-        match op with
-        | Minirisc.AddI | Minirisc.SubI ->
-            if i = 0 && get_reg_id r1 = get_reg_id r2 then None else Some scomm
-        | _ -> Some scomm)
     | _ -> Some scomm
   in
   (* Labels are the nodes identifiers! 
