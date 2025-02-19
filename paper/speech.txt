@@ -1,0 +1,124 @@
+30 minutes max
+
+Slide 2.
+
+Prima di tutto perché sono utili? 
+Un'astrazione si può giudicare per i componenti che permette di esprimere.
+Qui sono elencati ma faremo vedere ciascuno di questi con un esempio.
+
+Slide 3.
+
+Ok quindi che cosa sono gli effetti? 
+Possono essere visti come dei cugini delle eccezioni:
+un effetto viene invocato in un particolare punto del programma,
+e risale lo stack dei record finché non trova un handler con una clausola
+che fa riferimento all'effetto. 
+A quel punto il controllo passa all'inizio della clausola.
+Una differenza sostanziale è che nei linguaggi mainstream non si può
+recuperare l'esecuzione mentre con gli effetti parleremo di continuazioni
+cioè oggetti che permettono di riesumare l'esecuzione dal punto in cui l'effetto è 
+stato chiamato.
+Un'altra differenza, con ad esempio Java, è che l'handler, cioè il blocco catch 
+è definito staticamente, proprio per questo il compilatore richiede che tutte le eccezioni vengano
+gestite da un apposito blocco o che il metodo venga dichiarato come "throwable" di una particolare
+eccezione. Mentre linguaggi effect-full rendono gli handler first-class cioè si crea
+un tipo di polimorfismo nel codice che verrà eseguito quando un particolare effetto verrà
+evocato.
+
+
+Slide 4.
+
+Ok il paper di Pretnar definisce un linguaggio che useremo d'ora in poi per gli esempi.
+A parte la specifica sintassi che vedremo fra poco, abbiamo che
+gli handler sono first-class citizen permettendo il polimorfismo a cui mi riferivo.
+Funzioni non sono pure, nel senso che definiamo il concetto di computazione che altro non è
+che un valore assieme ad una serie di effetti che possono essere lanciati.
+Quindi i "side-effect" sono gestiti a livello di tipo come vedremo anche più tardi.
+Le computazioni non sono first-class values quindi siamo ristretti a fare alcune
+cose che ci paiono ovvie in altri linguaggi, rilasseremo questo vincolo per non appesantire
+gli esempi.
+
+Slide 5.
+
+Abbiamo detto che una differenza tra effetti ed eccezioni sono le continuazioni.
+Che altro non sono che funzioni che racchiudono lo stato dell'esecuzioni 
+in un particolare punto. 
+Il particolare punto è il momento in cui un effetto è stato invocato.
+Quindi la computazione diventa parametrica nel valore dell'effetto e questa può essere
+trattata come un qualsiasi oggetto.
+
+Slide 6.
+
+Un effetto di particolare importanzaz è il return. Fondamentalmente, un handler può gestire il return
+ma a livello di linguaggio ogni assegnazione è considerato come un handler di effetti di 
+return.
+
+Slide 7.
+
+Un handler quindi definisce una serie di clausole e una computazione da eseguire una volta che un effetto di quel tipo viene catturato. Un handler non ha particolari vincoli su quello che può fare con la continuazione. 
+
+Slide 8.
+
+In alcuni linguaggi però non è così. Linguaggi basati sugli effetti come Eff e Koka offrono la maggiore versatilità in termini di gestione delle continuazioni. Altri linguaggi come OCAML che hanno recentemente introdotto gli effetti permettono una forma più debole di continuazione chiamata one-shot continuation per via del fatto che la continuazione può essere riesumata soltanto una volta.
+
+Slide 9.
+
+Per quanto riguarda risorse di cui si accennava prima abbiamo bisogno di essere sicuri che la continuazione venga fatta riesumare per rilasciare le risorse! Questo è un controllo che OCaml non fa.
+
+Slide 10.
+
+E' ovvio che avere multi-shot continuation permetta più espressività. Ecco un esempio di backtracking utilizzando gli effetti. Il codice genera tutti i sottoinsiemi di un insieme rappresentato come array.
+In particolare index è l'indice dell'attuale elemento che consideriamo. L'effetto "decide" è l'effetto che chiama due volte la continuazione k: la prima con valore true, la seconda con valore false. In questo modo tutti percorsi dell'albero vengono percorsi.
+
+Slide 11.
+
+Ci sono diversi modi in cui i linguaggi ad effetti implementato lo stato. L'approccio adottato nel paper è quello di far generare agli effetti funzioni parametriche nello stato. In questo modo il programma diventa parametrico nello stato iniziale. Qui abbiamo le classiche operazioni di get e set, la prima ovviamente non cambia lo stato, i.e. chiama la continuazione con lo stesso valore di prima. Mentre la seconda sì.
+Inoltre ad un return ritorniamo come risultato lo stato e il valore di ritorno.
+
+Slide 12.
+
+Parliamo quindi di iteratori cioè oggetti che ci permettono di accedere in maniera sequenziale ad un flusso di dati. Alcuni linguaggi hanno anche incorporato l'idea di generatore cioè la creazione on-demand di un iteratore. Per esempio python utilizza l'istruzione di yield che blocca lo stato dell'esecuzione della funzione e ritorna un oggetto iteratore il quale get_next semplicemente riprende lo stato dell'esecuzione fino al prossimo yield o return.
+
+Slide 13.
+
+In un contesto di linguaggio ad effetti lo yield lo si può vedere come un effetto ...
+
+Slide 14.
+
+Operazioni Asincrone sono operazioni divenute sempre più popolari, poiché permettono di gestire applicazioni ad eventi senza dover ogni qualvolta bloccare tutto il programma. Con il nostro linguaggio ad effetti supponiamo l'esistenza di una primitiva la quale prende una continuazione e la "esegue" non appena una riceve una risposta ad una GET request. In questo modo possiamo scrivere il nostro programma utilizzanod gli effetti senza l'aggiunta di ulteriori meccanismi o di divedere il nostro codice in codice asincrono e non come succede in altri linguaggi.
+
+Slide 15.
+
+Something about threads...
+
+Slide 16.
+
+Something about threads...
+
+Slide 17.
+
+Something about threads...
+
+Slide 18.
+
+Arriviamo ai tipi. Come abbiamo detto prima le funzioni devono catturare il tipo degli effetti invocabili nel loro corpo, altrimenti non avremmo idea cosa quella computazione potrebbe restituire. Eseguire la computazione associata ad una funzione non restituisce sempre il tipo della computazione dell'associazione poiché gli effetti potrebbero modificare il flusso di controllo e restituire un tipo diverso! Questo significa che gli effetti che una computazione invoca e il tipo degli effetti deve coincidere con il tipo "restituito" della computazione.
+
+Slide 19.
+
+Ragionare ad effetti non è semplice: l'inversione del flusso di controllo e la possibilità di avere polimorfismo sull'handler rendono il debugging molto complicato.
+Comunque sia, in letteratura sono stati scoperti strumenti per ragionare sugli effetti e una relazione di equivalenza è stata formulata.
+
+(Enunciare la definizione di observationally equivalent)
+
+
+Slide 20.
+
+Un primo esempio è il seguente. Ricordo che possiamo dimostrare equivalenza rispetto a computazioni. Quindi ora lo facciamo rispetto a C1.
+
+
+
+
+
+
+
+

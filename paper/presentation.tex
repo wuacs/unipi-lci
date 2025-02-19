@@ -20,13 +20,18 @@
 \usepackage{listings}
 \usepackage{hyperref}
 \usetheme{default}
+\usepackage{mathpartir}
+
+% Define the transition relation
+\newcommand{\transition}{\rightarrow}
 
 % Define OCaml language for listings
 \lstdefinelanguage{ocaml}{
-	morekeywords={let, rec, in, match, with, type, fun, function, try, end, begin, if, then, else, open, module, struct, sig, val, of, for, while, do, done, as, exception, raise, assert, lazy, ref, mutable, inherit, virtual, new, object, method, private, include, constraint, class, initializer, and, or, not, mod, land, lor, lxor, lsl, lsr, asr},
+	morekeywords={let, rec, in, match, with, function, type, of, if, then, else, begin, end, fun, try, raise, exception, module, struct, sig, open, include, val, and, as, assert, class, constraint, inherit, initializer, method, mutable, new, object, private, virtual, when, while, for, to, downto, done, true, false, lsl, lsr, asr, land, lor, lxor, mod, ref, not, or, else, begin, end},
 	sensitive=true,
 	morecomment=[n]{(*}{*)},
 	morestring=[b]",
+	morestring=[d]{|},
 }
 
 \lstdefinelanguage{pratner}{
@@ -45,11 +50,6 @@ A.Y. 24/25}
 
 \begin{frame}
   \titlepage
-\end{frame}
-
-\begin{frame}
-  \frametitle{Table of Contents}
-  \tableofcontents
 \end{frame}
 
 \begin{frame}
@@ -102,7 +102,7 @@ try {
 	\begin{itemize}
 		\item Handlers are first-class citizens: this gives a way of \alert{composing handlers} in a dynamic way, i.e. we are not bound to lexical propagation in effect propagation (like for exceptions in Java)
 		\item Functions, i.e. mappings from values \alert{to computations}, are first-class citizens, however...
-		\item Computations are \textit{restricted} first-class citizens: we can bind a computation $c$ with a \textbf{do} x $\leftarrow c$ \textbf{in} $c_2$  instruction to variable $x$ or we can capture a continuation through an \alert{operational clause} in an handler
+		\item Computations are \textit{restricted} first-class citizens: we cannot do x + y as + is simply a function (with one parameter, which returns a computation) thus ((+) x) y needs to be rewritten as \textbf{do} f $\leftarrow $ (+) x \textbf{in} f y. We will \alert{relax this syntax} in few of our examples...
 		
 	\end{itemize}
 	
@@ -113,16 +113,49 @@ try {
 	\frametitle{Continuations}
 	The previous frame referenced the concept of continuation, which can be interpreted as \alert{the state of the execution} at the moment of the raised effect.
 	\newline
-	Every raised effect, except the \textit{return} effect, give raise to a new continuation which is a function which when invoked, "runs" the computation returned where the effect invocation is replaced with the value.
+	Every raised effect, except the \textit{return} effect, give raise to a new continuation which is a function which when invoked, "runs" the computation returned where the effect invocation is replaced with the value. 
 	\newline
 	In \cite{pratner} raising an effect is written: 
 	\begin{lstlisting}[basicstyle=\small]
 		op(v; y.c)
 	\end{lstlisting}		
 	But we shall use the following in our examples:
-	\begin{lstlisting}[basicstyle=\small, mathescape= true]
-		op $\triangleq$ op(v ; y. return y)
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
+		op $\triangleq$ fun v $\rightarrow$ op (v ; y. return y)
 	\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Return is special}
+	The return effect is a special effect whose semantics is embedded in the language:\\
+	$$
+	\inferrule{
+		\vphantom{c}
+	}{
+		\textbf{do } x \leftarrow \textbf{return } v \textbf{ in }c \rightsquigarrow \text{c[v$\backslash$x]}
+	}	
+$$
+
+	Which simply means that if our continuation calls the closest $do$ will catch its value, i.e. act as an handler.
+	
+	$$
+	\inferrule
+	{
+			\inferrule
+			{
+			\textbf{do } x \leftarrow \textbf{return } y \textbf{ in }c \rightsquigarrow \text{c[y$\backslash$x]}
+			}
+			{
+			\text{op p } \triangleq \text{(fun k}\rightarrow \text{op (k; y. return y)) p}\\
+			\text{(fun k $\rightarrow$ op (k; y. return y)) p $\rightsquigarrow$ op (k; y.return y) [p$\backslash$k]}\\
+			\text{do x $\leftarrow$ op(p; y.return y) in c $\rightsquigarrow$ op(p; y. do x $\leftarrow$ return y in c)}
+			}	
+	}{
+		\text{do x} \leftarrow \text{op p in c } \rightsquigarrow  \text{c[y$\backslash$x]}
+	}	
+	$$
+	
+
 \end{frame}
 
 \begin{frame}
@@ -148,7 +181,7 @@ try {
 	In languages like Eff and Koka, which ground their logic on effects, continuations are function values like any other, this means they can be re-used, moved ecc.
 	\newline
 	\newline
-	In OCAML 5.x, a weaker form of continuations is used called \alert{one-shot continuations}. Which simply means we can resume a continuation only once.
+	In OCAML 5.x, a weaker form of continuations is used called \alert{one-shot continuations}.
 	\newline
 	\begin{itemize}
 		\item Less memory consuming, we do not need to copy stack frames
@@ -183,19 +216,13 @@ let leaky_task () =
 	Backtracking !
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=-2pt, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
 
-rec fun chooseInt(m, n) $\rightarrow$
-	if m $\ge$ n then fail () else 
-	do b $\leftarrow$ decide () in
-	if b then (return m) else chooseInt (m+1, n)
-
 rec fun generateSets (input, curr, index, length) $\mapsto$ 
 	if index = length then
 	 (do _ $\leftarrow$ print curr in fail ())
 	else 
 	 (do b $\leftarrow$ decide () in
 		if b then  
-		do t $\leftarrow$ chooseInt(index+1, length) in
-		(generateSets (input, add curr (get (input, curr)), t, length))
+		(generateSets (input, add curr (get (input, index)), index+1, length))
 		else 
 		(generateSets (input, curr, index+1, length)))
 		
@@ -203,8 +230,197 @@ with handler
 	{ decide (_, k) $\rightarrow$ 
 		with handler { fail (_, _) $\rightarrow$ k false}
 			 handle k true } 
-	handle generateSets (input, empty, 0, length)
+	handle generateSets (input, empty, 0, (array_length input))
 	\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Recursive Descent Parsing}
+	\vspace{10pt}
+	\begin{quote}
+		Recursive descent with \alert{backtracking} is a technique that determines which production to use by trying each production in turn.
+	\end{quote} (Wikipedia)
+	
+	Some helper handlers and functions:
+	
+	\begin{multicols}{2}
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+flip : unit $\rightarrow$ bool
+
+choice $\triangleq$ fun (p1, p2, s) $\rightarrow$
+    if flip () then p1 s else p2 s
+
+fail : unit $\rightarrow$ (a, string)			
+		
+continuous_parsing $\triangleq$ fun (p, s) $\rightarrow$ 
+    choice 
+    (fun s $\rightarrow$ continuous_parsing_acc p s) 
+    (fun s $\rightarrow$ []) s
+	\end{lstlisting}
+
+	
+	\columnbreak
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+continuous_parsing_acc $\triangleq$  fun (p, s) $\rightarrow$
+	do (x, s') $\leftarrow$ p s in
+	do l $\leftarrow$ (continuous_parsing (p, s')) in
+	x :: l
+	
+	
+solutions $\triangleq$ handler {
+	return x $\rightarrow$ [x]
+	flip(_, k) $\rightarrow$ (k true) @ (k false)
+	fail (_, k) $\rightarrow$ k []
+}
+	\end{lstlisting}
+	
+	
+	\end{multicols}
+	
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Recursive Descent Parsing 2}
+	
+\begin{multicols}{2}
+
+\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+parser $\triangleq$ handler {
+    satisfy ((p, s), k) $\rightarrow$ 
+    match p s with
+    | Just(x, s') $\rightarrow$ k (x, s')
+    | Nothing $\rightarrow$ fail ()
+}
+
+parse_char $\triangleq$ fun s c {
+    satisfy (fun str $\rightarrow$ 
+    match first s with
+    Just(r, rest) | (c = r) 
+        $\rightarrow$ Just(c, rest) 
+    _ $\rightarrow$ Nothing
+}
+
+\end{lstlisting}
+
+\columnbreak
+
+\begin{lstlisting}	[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+
+
+parse_digit $\triangleq$ fun s c {
+    satisfy (fun str $\rightarrow$ 
+    match first s with
+    Just(r, rest) | (c = r && is_digit r) 
+    	$\rightarrow$ Just(to_int r, rest) 
+    _ $\rightarrow$ Nothing
+}
+
+parse_number $\triangleq$ fun s {
+    do digits $\leftarrow$ continuous_parsing
+        (parse_digit, s) in
+    (foldr digits 
+        (fun ((acc, v), d) $\rightarrow$ 
+            (acc + (to_int d)*v*10, v*10))
+        (0, 1), chop (length digits) s}
+
+\end{lstlisting}
+\end{multicols}
+
+Assumptions to make it more readable: the maybe type constructor, pattern matching, $\verb|to_int|$ effect, \alert{generic types}..
+
+satisfy: $\langle \textit{a} \rangle (\textit{string} \rightarrow (\textit{Maybe a}, \textit{string}), \textit{string}) \rightarrow (\textit{a}, \textit{string})$
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Parsing cont'd}
+\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+	
+\end{lstlisting}
+
+Our grammar is for expressions with only multiplication and addition:
+
+\begin{lstlisting}[mathescape = true, basicstyle=\scriptsize]
+	expr $\rightarrow$ expr + expr | term
+	term $\rightarrow$ term * term | factor
+	factor $\rightarrow$ ( expr ) | number
+\end{lstlisting}
+Now let's define the function which parses expressions:
+
+\begin{multicols}{2} 
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+expr $\triangleq$ fun str $\rightarrow$
+	choice
+	(fun str $\rightarrow$ 
+	do (i, str) $\leftarrow$ term str in
+	do (_, str) $\leftarrow$ parse_char '+' str in
+	do (j, str) $\leftarrow$ term str in
+	(i + j, str))
+	(fun str $\rightarrow$ term str) str
+	\end{lstlisting}
+	
+	\columnbreak
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+term $\triangleq$ fun str $\rightarrow$
+	choice 
+	(fun str $\rightarrow$ 
+	do (i, str) $\leftarrow$ term str in
+	do (_, str) $\leftarrow$ parse_char '*' str in
+	do (j, str) $\leftarrow$ term str in
+	(i * j, str))
+	(fun str $\rightarrow$ factor str) str
+	\end{lstlisting}
+\end{multicols}
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=-5pt, belowskip=0pt, columns=fullflexible]
+factor $\triangleq$ fun str $\rightarrow$
+	choice 
+	(fun str $\rightarrow$
+	do (_, str) $\leftarrow$ parse_char '(' in do (t, str) $\leftarrow$ expr str in do (_, str) 
+	$\leftarrow$ parse_char ')' in (t, str))
+	(fun str $\rightarrow$ parse_number str) str
+	\end{lstlisting}
+	
+
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Parsing cont'd 2}
+	
+	The handler \textit{solutions} can be easily substituted to personalize the parsing strategies and add behavior.
+	
+	Eager Left-recursive strategy:
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+eager_left_recursive $\triangleq$ handler {
+	return x $\rightarrow$ Just(x)
+	fail (_, _) $\rightarrow$ Nothing
+	flip (_, k) $\rightarrow$
+        do x $\leftarrow$ k true in
+        if x = Nothing then
+            k true
+        else
+            x	}
+	\end{lstlisting}
+	
+	Example:
+	
+	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize, aboveskip=0pt, belowskip=0pt, columns=fullflexible]
+with solutions handle {
+    with parse handle {
+    	expr "3*2+4"
+    }
+}	
+\end{lstlisting}
+
+gives us $\verb|[(10, ""), (6, "+4"), (3, "*2+4")]|$
+	
+	
 \end{frame}
 
 
@@ -257,23 +473,22 @@ with handler
 	Iterating lists...
 	
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
-		rec fun iterate (xs) $\rightarrow$ 
+		rec fun iterate xs $\rightarrow$ 
 			if xs = Nil then 
-				return _ 
+			    return _ 
 			else
-				do (x, xs) $\leftarrow$ head xs in
-				do _ $\leftarrow$ yield x in
-				iterate xs
+			    do (x, xs) $\leftarrow$ head xs in
+			    do _ $\leftarrow$ yield x in
+			    iterate xs
 		
 	\end{lstlisting}  
 	
 	Building custom iterators...
 	
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
-		fun foreach (action, test) $\rightarrow$ 
-		with handler {
-			 return x $\rightarrow$ return _
-			 yield (x; k) $\rightarrow$ if test x then k () else return _
+		fun foreach (action, test) $\rightarrow$ with handler {
+			return x $\rightarrow$ return _
+			yield (x; k) $\rightarrow$ if test x then k () else return _
 		} handle ( action () )
 	\end{lstlisting}  
 \end{frame}
@@ -281,8 +496,7 @@ with handler
 \begin{frame}[fragile]
 	\frametitle{Asynchronous operations}
 	Asynchronous operations are such operations which can be run in the background and, after they have returned, a function called the \textit{callback function} is executed with, sometimes, the result of the asynchronous function as input.
-	
-	With effects we can easily implement asynchronous operations and customize them (e.g. deciding whether the operation is blocking or non-blocking with specific handler by deferring the continuation after the operations or resuming it instantly) 
+	With effects we can easily implement asynchronous operations and customize them.
 	
 
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
@@ -299,7 +513,7 @@ do _ $\leftarrow$ print("Sending GET request...")
 in
 do response $\leftarrow$ effect_http_get_response ()
 in
-do _ $\leftarrow$ print ("Response was " + resposne)
+do _ $\leftarrow$ print ("Response was " + response)
 		\end{lstlisting}  
 		
 		\columnbreak
@@ -321,23 +535,13 @@ handler {
 	Cooperative Multi-threading is based on the simulation of parallelism by the handling of threads by the scheduler. 
 	A \alert{fork} operation creates a new thread while a \alert{yield} halts the current thread, giving an opportunity to the scheduler to decide who goes next.
 		
-	We can define these operations as effects:
-	
-	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\scriptsize,lineskip=0pt, aboveskip=10pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
-		fork : unit $\rightarrow$ unit
-		yield : (unit $\rightarrow$ (unit!{collab, print})) $\rightarrow$ unit
-		collab : int $\rightarrow$ unit
-	\end{lstlisting}  
-	
-	
-		Where the type \verb|unit!{collab, print}| is the type of a computations which return a unit value and may raise \textit{collab} effect.
-		
+	We can define those operations as effects...	
 \end{frame}
 
 \begin{frame}[fragile]
 	\frametitle{Multi-threading cont'd}
 	
-	Then we can create a simple round-robin scheduler which matches the first waiting thread with the first requesting a collaboration.
+	Then we can create a simple scheduler which matches the first waiting thread with the first requesting a collaboration.
 	
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
 	round_robin $\triangleq$ fun c $\rightarrow$ 
@@ -352,7 +556,7 @@ handler {
 						return (xs, x)))
 		in
 		do sch $\leftarrow$ handler {
-			fork (t; k) $\rightarrow$ (fun (l, w) $\rightarrow$ (do t' = enqueue k l in t (t', w))
+			fork (t; k) $\rightarrow$ (fun (l, w) $\rightarrow$ (do t' = enqueue k l in t (t', w)))
 			yield (_; k) $\rightarrow$ (fun (l, w) $\rightarrow$ (do (l', t) $\leftarrow$ dequeue l in 
 					do l'' = enqueue l' k in t (l'', w)))
 			collab (i; k) $\rightarrow$ (fun (l, w) $\rightarrow$ if is_none w = false then
@@ -362,7 +566,7 @@ handler {
 					else 
 					    do m $\leftarrow$ Some(i, fun i $\rightarrow$ (fun w $\rightarrow$ k (i, w))) in 
 					    do (l', t)  $\leftarrow$ dequeue l in t (l', m)
-			return ((l, w); _) $\rightarrow$ do (l', t)  $\leftarrow$ dequeue l w in t (l', w)})
+			return ((l, w); _) $\rightarrow$ do (l', t)  $\leftarrow$ dequeue l w in t (l', w)}
 		in 
 		handle (with sch handle c ())
 		
@@ -374,7 +578,7 @@ handler {
 \begin{frame}[fragile]
 	\frametitle{Multi-threading cont'd 2}
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
-round_robin (fun _ $\rightarrow$
+(round_robin (fun _ $\rightarrow$
 do f1 $\leftarrow$ (fork (fun f1' $\rightarrow$ 
 	do _ $\leftarrow$ print "Hi from thread 0" in
 	do (v, world) $\leftarrow$ (collab 0) f1' in 
@@ -385,7 +589,7 @@ do _ $\leftarrow$ (fork (fun f2' $\rightarrow$
 	do _ $\leftarrow$ print "Hi from thread 1" in
 	do (v, world) $\leftarrow$ (collab 1) f2' in
 	do _ $\leftarrow$ print "thread 1 received " + v in
-	world)) f1
+	world)) f1)
 	\end{lstlisting}
 	
 	The absence of mutable data types requires us to wrap a thread's computation in a function $\verb|threads| \times \verb|waiting| \rightarrow \verb|threads| \times \verb|waiting|$ which encapsulates the update on the queue and to the waiting threads cause by the thread's execution.
@@ -394,7 +598,7 @@ do _ $\leftarrow$ (fork (fun f2' $\rightarrow$
 
 	\begin{frame}[fragile]
 	\frametitle{Multi-threading cont'd 3}
-	A more readable example, using \textit{thunks}, if we introduced \alert{mutable types} and \alert{polymorphic types} (otherwise we have to use two different \textit{enqueue})
+	A more readable example, using \textit{thunks} if we introduced \alert{mutable types})
 	\begin{lstlisting}[language=pratner, mathescape=true, basicstyle=\tiny,lineskip=0pt, aboveskip=1pt, belowskip=0pt, columns=fullflexible, escapeinside={<@}{@>}]
 		round_robin_ref $\triangleq$ fun c $\rightarrow$
 			do waiting $\leftarrow$ ref 
@@ -442,7 +646,7 @@ do _ $\leftarrow$ (fork (fun f2' $\rightarrow$
 \end{frame}
 	
 \begin{frame}[fragile]
-	\frametitle{Induction Principle}
+\frametitle{Induction Principle}
 	Reasoning about algebraic effects is hard due to:
 	\begin{itemize}
 		\item Handlers being first-class values, so it is undecidable which handler will be used for a particular effect
@@ -455,7 +659,7 @@ do _ $\leftarrow$ (fork (fun f2' $\rightarrow$
 	Definition: predicate $\phi$ holds for all computations $c$ if
 	\begin{enumerate}
 		\item $\phi(\verb|return v|)$ holds for every value $v$
-		\item $\phi(op(v; y.c'))$ holds for every op in handler $h$ if we assume that $\phi(c')$ holdws for all \alert{possible} $y$ 
+		\item $\phi(op(v; y.c'))$ holds for every op in handler $h$ if we assume that $\phi(c')$ holds for all \alert{possible} $y$ 
 	\end{enumerate}
 	
 \end{frame}
